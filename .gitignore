@@ -1,0 +1,15 @@
+# CMake build directory
+build/
+
+# Visual Studio Code workspace
+*.code-workspace
+.vscode/
+
+# Eclipse project files
+.project
+.cproject
+.settings/
+
+# personal stuff
+notes/
+
