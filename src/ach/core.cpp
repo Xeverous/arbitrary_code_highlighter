@@ -1,8 +1,8 @@
-#include "core.hpp"
-#include "color_tokenizer.hpp"
-#include "code_tokenizer.hpp"
-#include "html_builder.hpp"
-#include "utility.hpp"
+#include <ach/core.hpp>
+#include <ach/utility/visitor.hpp>
+#include <ach/detail/code_tokenizer.hpp>
+#include <ach/detail/color_tokenizer.hpp>
+#include <ach/detail/html_builder.hpp>
 
 #include <cassert>
 #include <variant>
@@ -10,11 +10,14 @@
 
 namespace {
 
+using namespace ach;
+using namespace ach::detail;
+
 using result_t = std::variant<span_element, highlighter_error>;
 
 result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 {
-	return std::visit(visitor{
+	return std::visit(utility::visitor{
 		[&](identifier_span id_span) -> result_t {
 			text_location const loc_code_id = code_tr.extract_identifier();
 
@@ -76,16 +79,18 @@ result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 
 			return highlighter_error{
 				color_tn.origin,
-				code_tr.get_current_location(),
+				code_tr.current_location(),
 				"reached color input end, but some code remains"};
 		},
 		[&](invalid_token invalid) -> result_t {
-			return highlighter_error{color_tn.origin, code_tr.get_current_location(), invalid.reason};
+			return highlighter_error{color_tn.origin, code_tr.current_location(), invalid.reason};
 		}
 	}, color_tn.token);
 }
 
 }
+
+namespace ach {
 
 std::variant<std::string, highlighter_error> run_highlighter(
 	std::string_view code,
@@ -109,4 +114,6 @@ std::variant<std::string, highlighter_error> run_highlighter(
 	assert(code_tr.has_reached_end());
 
 	return std::move(builder.str());
+}
+
 }

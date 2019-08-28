@@ -1,8 +1,10 @@
-#include "text_extractor.hpp"
-#include "text_utils.hpp"
+#include <ach/text_extractor.hpp>
+#include <ach/detail/text_utils.hpp>
 
 #include <algorithm>
 #include <cassert>
+
+namespace ach {
 
 void text_extractor::load_next_line()
 {
@@ -10,8 +12,12 @@ void text_extractor::load_next_line()
 	auto const last = remaining_text.data() + remaining_text.size();
 
 	auto it = std::find(first, last, '\n');
+
 	if (it != last) { // we want to include '\n' in the line if possible
 		++it;
+	}
+
+	if (it != first) { // if it moved this means we started reading a new line
 		++line_number;
 		column_number = 0;
 	}
@@ -38,12 +44,12 @@ text_location text_extractor::extract_by(Predicate pred)
 
 text_location text_extractor::extract_identifier()
 {
-	return extract_by(is_identifier_char);
+	return extract_by(detail::is_identifier_char);
 }
 
 text_location text_extractor::extract_number()
 {
-	return extract_by(is_digit);
+	return extract_by(detail::is_digit);
 }
 
 text_location text_extractor::extract_n_characters(int n)
@@ -60,4 +66,6 @@ text_location text_extractor::extract_n_characters(int n)
 text_location text_extractor::extract_until_end_of_line()
 {
 	return extract_by([](char c) { return c != '\n'; });
+}
+
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+namespace ach::utility {
+
 template<typename... Ts>
 struct visitor : Ts...
 {
@@ -8,3 +10,5 @@ struct visitor : Ts...
 
 template<typename... Ts>
 visitor(Ts...) -> visitor<Ts...>;
+
+}

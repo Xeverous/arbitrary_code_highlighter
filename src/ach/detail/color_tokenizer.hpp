@@ -1,7 +1,9 @@
 #pragma once
 
-#include "color_token.hpp"
-#include "text_extractor.hpp"
+#include <ach/text_extractor.hpp>
+#include <ach/detail/color_token.hpp>
+
+namespace ach::detail {
 
 class color_tokenizer
 {
@@ -16,3 +18,5 @@ public:
 private:
 	text_extractor extractor;
 };
+
+}

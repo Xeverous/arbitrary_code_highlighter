@@ -1,5 +1,7 @@
 #pragma once
 
+namespace ach::detail {
+
 constexpr bool is_digit(char c) noexcept
 {
 	return '0' <= c && c <= '9';
@@ -18,4 +20,6 @@ constexpr bool is_alnum(char c) noexcept
 constexpr bool is_identifier_char(char c) noexcept
 {
 	return is_alpha(c) || c == '_';
+}
+
 }

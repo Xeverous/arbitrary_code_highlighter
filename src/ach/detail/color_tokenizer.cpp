@@ -1,13 +1,15 @@
-#include "color_tokenizer.hpp"
-#include "text_utils.hpp"
+#include <ach/detail/color_tokenizer.hpp>
+#include <ach/detail/text_utils.hpp>
 
 #include <charconv>
+
+namespace ach::detail {
 
 color_token color_tokenizer::next_token()
 {
 	std::optional<char> c = extractor.peek_next_char();
 	if (!c) {
-		return color_token{end_of_input{}, extractor.get_current_location()};
+		return color_token{end_of_input{}, extractor.current_location()};
 	}
 
 	char const next_char = *c;
@@ -42,4 +44,6 @@ color_token color_tokenizer::next_token()
 	// unknown character - treat as a symbol token
 	text_location const loc = extractor.extract_n_characters(1);
 	return color_token{symbol{loc.str().front()}, loc};
+}
+
 }

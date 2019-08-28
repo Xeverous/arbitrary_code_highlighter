@@ -1,9 +1,11 @@
 #pragma once
 
-#include "text_location.hpp"
-#include "html_types.hpp"
+#include <ach/text_location.hpp>
+#include <ach/detail/html_types.hpp>
 
 #include <variant>
+
+namespace ach::detail {
 
 struct identifier_span
 {
@@ -61,3 +63,5 @@ struct color_token
 	color_token_variant token;
 	text_location origin;
 };
+
+}

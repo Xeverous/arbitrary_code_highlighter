@@ -1,6 +1,6 @@
 #pragma once
 
-namespace version
+namespace ach::version
 {
 
 constexpr int major = 0;

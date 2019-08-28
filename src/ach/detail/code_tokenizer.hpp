@@ -1,8 +1,10 @@
 #pragma once
 
-#include "text_extractor.hpp"
+#include <ach/text_extractor.hpp>
 
 #include <string_view>
+
+namespace ach::detail {
 
 class code_tokenizer
 {
@@ -23,8 +25,10 @@ public:
 	}
 
 	[[nodiscard]] bool has_reached_end() const noexcept { return extractor.has_reached_end(); }
-	text_location get_current_location() const noexcept { return extractor.get_current_location(); }
+	text_location current_location() const noexcept { return extractor.current_location(); }
 
 private:
 	text_extractor extractor;
 };
+
+}

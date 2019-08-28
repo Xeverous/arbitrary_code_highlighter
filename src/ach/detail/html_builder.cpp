@@ -1,4 +1,6 @@
-#include "html_builder.hpp"
+#include <ach/detail/html_builder.hpp>
+
+namespace ach::detail {
 
 void html_builder::add_span(span_element span)
 {
@@ -39,11 +41,9 @@ std::string_view html_builder::to_escaped_html(char const& c) noexcept
 			return "&lt;";
 		case '>':
 			return "&gt;";
-		case ' ':
-			return "&nbsp;";
-		case '\t':
-			return "&#9;";
 		default:
 			return {&c, 1};
 	}
+}
+
 }

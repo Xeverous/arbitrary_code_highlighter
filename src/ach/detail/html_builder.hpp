@@ -1,10 +1,11 @@
 #pragma once
 
-#include "html_types.hpp"
+#include <ach/detail/html_types.hpp>
 
 #include <string>
 #include <string_view>
 
+namespace ach::detail {
 
 class html_builder
 {
@@ -26,3 +27,5 @@ private:
 
 	std::string result;
 };
+
+}

@@ -1,10 +1,12 @@
 #pragma once
 
-#include "text_location.hpp"
+#include <ach/text_location.hpp>
 
 #include <string_view>
 #include <optional>
 #include <cassert>
+
+namespace ach {
 
 class text_extractor
 {
@@ -15,7 +17,7 @@ public:
 		load_next_line();
 	}
 
-	std::optional<char> peek_next_char() const {
+	std::optional<char> peek_next_char() const noexcept {
 		auto const remaining = remaining_line_text();
 
 		if (remaining.empty()) {
@@ -29,7 +31,7 @@ public:
 		return remaining_text.empty() && current_line.empty();
 	}
 
-	text_location get_current_location() const {
+	text_location current_location() const noexcept {
 		return text_location(line_number, current_line, column_number, 0);
 	}
 
@@ -48,7 +50,8 @@ private:
 	}
 
 	void load_next_line();
-	std::string_view remaining_line_text() const {
+
+	std::string_view remaining_line_text() const noexcept {
 		auto result = std::string_view(current_line);
 		assert(column_number <= static_cast<int>(result.size()));
 		result.remove_prefix(column_number);
@@ -64,3 +67,5 @@ private:
 	int line_number = 0;
 	int column_number = 0;
 };
+
+}

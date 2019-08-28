@@ -10,6 +10,8 @@ find_package(Boost 1.68 REQUIRED
 
 add_executable(ach_test
 	main.cpp
+	text_extractor_tests.cpp
+	highlighter_tests.cpp
 )
 
 target_include_directories(ach_test
