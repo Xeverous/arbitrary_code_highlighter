@@ -2,21 +2,34 @@
 
 namespace ach::detail {
 
-void html_builder::add_span(span_element span)
+void html_builder::add_span(span_element span, bool replace_underscores_to_hyphens)
 {
 	if (!span.class_) {
 		append_raw_escaped(span.text.text);
 		return;
 	}
 
-	auto const css_class = (*span.class_).name;
 	result += "<span class=\"";
-	result.append(css_class.data(), css_class.data() + css_class.length());
+	append_class(*span.class_, replace_underscores_to_hyphens);
 	result += "\">";
 
 	append_raw_escaped(span.text.text);
 
 	result += "</span>";
+}
+
+void html_builder::append_class(css_class class_, bool replace_underscores_to_hyphens)
+{
+	if (replace_underscores_to_hyphens) {
+		for (char c : class_.name) {
+			result.push_back(c == '_' ? '-' : c);
+		}
+	}
+	else {
+		auto const css_class = class_.name;
+		result.append(css_class.data(), css_class.data() + css_class.length());
+		return;
+	}
 }
 
 void html_builder::append_raw_escaped(std::string_view text)

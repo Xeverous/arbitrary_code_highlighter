@@ -173,4 +173,13 @@ BOOST_AUTO_TEST_SUITE(highlighter_suite)
 			"<span class=\"variable\">g</span>*<span class=\"variable\">h</span>^<span class=\"variable\">i</span>"));
 	}
 
+	BOOST_AUTO_TEST_CASE(replace_underscores_to_hyphens)
+	{
+		BOOST_TEST(run_and_compare(
+			"one two three",
+			"key_word k_e_y_w_o_r_d _keyword_",
+			"<span class=\"key-word\">one</span> <span class=\"k-e-y-w-o-r-d\">two</span> <span class=\"-keyword-\">three</span>",
+			ach::highlighter_options{ach::generation_options{true},{}}));
+	}
+
 BOOST_AUTO_TEST_SUITE_END()

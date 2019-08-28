@@ -13,7 +13,7 @@ public:
 	explicit html_builder() = default;
 
 	void reserve(int length) { result.reserve(length); };
-	void add_span(span_element span);
+	void add_span(span_element span, bool replace_underscores_to_hyphens = false);
 
 	std::string& str() noexcept { return result; }
 	std::string const& str() const noexcept { return result; }
@@ -24,6 +24,8 @@ private:
 
 	void append_raw_escaped(std::string_view text);
 	void append_raw_escaped(char c);
+
+	void append_class(css_class class_, bool replace_underscores_to_hyphens);
 
 	std::string result;
 };

@@ -117,7 +117,9 @@ std::variant<std::string, highlighter_error> run_highlighter(
 			return *ptr;
 		}
 
-		builder.add_span(std::get<span_element>(result));
+		builder.add_span(
+			std::get<span_element>(result),
+			options.generation.replace_underscores_to_hyphens);
 	}
 
 	assert(code_tr.has_reached_end());
