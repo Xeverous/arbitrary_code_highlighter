@@ -1,21 +1,23 @@
 #pragma once
 
 #include <ach/text_location.hpp>
+#include <ach/color_options.hpp>
 
 #include <string>
 #include <string_view>
-#include <optional>
 #include <variant>
-#include <vector>
 
 namespace ach {
 
-struct highlighter_options
+struct generation_options
 {
 	bool replace_underscores_to_hyphens = false;
-	// empty optional => any name is allowed
-	// otherwise => any used class name must exist in the vector
-	// std::optional<std::vector<std::string>> allowed_class_names;
+};
+
+struct highlighter_options
+{
+	generation_options generation;
+	color_options color;
 };
 
 struct highlighter_error

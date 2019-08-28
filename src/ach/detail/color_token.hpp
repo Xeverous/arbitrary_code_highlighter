@@ -30,6 +30,11 @@ struct symbol
 	char expected_symbol;
 };
 
+struct number
+{
+	css_class class_;
+};
+
 struct quoted_span
 {
 	char delimeter;
@@ -49,6 +54,7 @@ using color_token_variant = std::variant<
 	line_delimited_span,
 
 	symbol,
+	number,
 
 	quoted_span,
 

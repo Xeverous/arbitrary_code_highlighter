@@ -16,6 +16,10 @@ public:
 		return extractor.extract_identifier();
 	}
 
+	text_location extract_number() {
+		return extractor.extract_number();
+	}
+
 	text_location extract_n_characters(int n) {
 		return extractor.extract_n_characters(n);
 	}

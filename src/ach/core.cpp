@@ -55,6 +55,15 @@ result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 
 			return span_element{html_text{loc_symbol.str()}, std::nullopt};
 		},
+		[&](number num) -> result_t {
+			text_location const loc_num = code_tr.extract_number();
+
+			if (loc_num.str().empty()) {
+				return highlighter_error{color_tn.origin, loc_num, "expected number"};
+			}
+
+			return span_element{html_text{loc_num.str()}, num.class_};
+		},
 		[&](quoted_span) -> result_t {
 			assert("NOT IMPLEMENTED" && false);
 			return span_element{html_text{""}, std::nullopt};
@@ -95,14 +104,14 @@ namespace ach {
 std::variant<std::string, highlighter_error> run_highlighter(
 	std::string_view code,
 	std::string_view color,
-	highlighter_options const& /* options */)
+	highlighter_options const& options)
 {
 	color_tokenizer color_tr(color);
 	code_tokenizer code_tr(code);
 	html_builder builder;
 
 	while (!color_tr.has_reached_end()) {
-		result_t result = process_color_token(color_tr.next_token(), code_tr);
+		result_t result = process_color_token(color_tr.next_token(options.color), code_tr);
 
 		if (auto ptr = std::get_if<highlighter_error>(&result); ptr != nullptr) {
 			return *ptr;
