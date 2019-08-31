@@ -27,6 +27,8 @@ endif()
 
 option(ACH_BUILD_EXECUTABLE_CLI
 	"build ACH command line interface program" ON)
+option(ACH_BUILD_PYTHON_MODULE
+	"build ACH Python extension module" ON)
 option(ACH_BUILD_TESTS
 	"build ACH tests" ON)
 

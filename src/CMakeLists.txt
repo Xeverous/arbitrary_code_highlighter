@@ -34,6 +34,10 @@ if(ACH_BUILD_EXECUTABLE_CLI)
 	add_subdirectory(cli)
 endif()
 
+if(ACH_BUILD_PYTHON_MODULE)
+	add_subdirectory(python)
+endif()
+
 include(CTest) # adds option BUILD_TESTING (default ON)
 if(BUILD_TESTING AND ACH_BUILD_TESTS)
     enable_testing()
