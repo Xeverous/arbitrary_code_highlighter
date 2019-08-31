@@ -1,21 +1,37 @@
 #include <ach/detail/html_builder.hpp>
+#include <cassert>
 
 namespace ach::detail {
 
-void html_builder::add_span(span_element span, bool replace_underscores_to_hyphens)
+void html_builder::add_span(simple_span_element span, bool replace_underscores_to_hyphens)
 {
 	if (!span.class_) {
-		append_raw_escaped(span.text.text);
+		append_raw(span.text.text);
 		return;
 	}
 
+	open_span(*span.class_, replace_underscores_to_hyphens);
+	append_raw(span.text.text);
+	close_span();
+}
+
+void html_builder::add_span(quote_span_element span, bool replace_underscores_to_hyphens)
+{
+	open_span(span.primary_class, replace_underscores_to_hyphens);
+	append_quoted(span.text.text, span.escape, span.escape_class, replace_underscores_to_hyphens);
+	close_span();
+}
+
+void html_builder::open_span(css_class class_, bool replace_underscores_to_hyphens)
+{
 	result += "<span class=\"";
-	append_class(*span.class_, replace_underscores_to_hyphens);
+	append_class(class_, replace_underscores_to_hyphens);
 	result += "\">";
+}
 
-	append_raw_escaped(span.text.text);
-
-	result += "</span>";
+void html_builder::close_span()
+{
+	result += "</span>";;
 }
 
 void html_builder::append_class(css_class class_, bool replace_underscores_to_hyphens)
@@ -28,17 +44,59 @@ void html_builder::append_class(css_class class_, bool replace_underscores_to_hy
 	else {
 		auto const css_class = class_.name;
 		result.append(css_class.data(), css_class.data() + css_class.length());
-		return;
 	}
 }
 
-void html_builder::append_raw_escaped(std::string_view text)
+void html_builder::append_quoted(
+	std::string_view text,
+	char escape_char,
+	css_class escape_span_class,
+	bool replace_underscores_to_hyphens)
 {
-	for (char c : text)
-		append_raw_escaped(c);
+	assert(text.empty() || text.front() == text.back());
+	assert(text.empty() || text.front() != escape_char);
+
+	bool inside_escape = false;
+	bool escape_opened = false;
+	for (char c : text) {
+		if (inside_escape) {
+			append_raw(c);
+			inside_escape = false;
+			continue;
+		}
+
+		if (c == escape_char) {
+			if (!escape_opened) {
+				open_span(escape_span_class, replace_underscores_to_hyphens);
+				escape_opened = true;
+			}
+			inside_escape = true;
+			append_raw(c);
+			continue;
+		}
+
+		if (escape_opened) {
+			close_span();
+			escape_opened = false;
+		}
+
+		append_raw(c);
+	}
+
+	assert(!inside_escape && "valid input text should not end with opened escape");
+
+	if (escape_opened) {
+		close_span();
+	}
 }
 
-void html_builder::append_raw_escaped(char c)
+void html_builder::append_raw(std::string_view text)
+{
+	for (char c : text)
+		append_raw(c);
+}
+
+void html_builder::append_raw(char c)
 {
 	std::string_view const escaped = to_escaped_html(c);
 	result.append(escaped.data(), escaped.data() + escaped.length());

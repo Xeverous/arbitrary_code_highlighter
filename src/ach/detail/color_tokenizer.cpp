@@ -21,6 +21,18 @@ color_token color_tokenizer::next_token(color_options options)
 			return color_token{number{identifier}, loc};
 		}
 
+		if (identifier == options.str_token_keyword) {
+			return color_token{
+				quoted_span{options.str_token_keyword, options.str_esc_token_keyword, '"', options.str_escape},
+				loc};
+		}
+
+		if (identifier == options.chr_token_keyword) {
+			return color_token{
+				quoted_span{options.chr_token_keyword, options.chr_esc_token_keyword, '\'', options.chr_escape},
+				loc};
+		}
+
 		return color_token{identifier_span{identifier}, loc};
 	}
 	else if (is_digit(next_char)) {

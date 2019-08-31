@@ -20,7 +20,7 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 		BOOST_TEST(loc.first_column() == 0);
 	}
 
-	enum class extraction_operation { identifier, number, n_characters, until_end_of_line };
+	enum class extraction_operation { identifier, number, n_characters, until_end_of_line, quoted };
 
 	struct extraction_step
 	{
@@ -81,6 +81,9 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 				}
 				else if (step.operation == extraction_operation::until_end_of_line) {
 					return te.extract_until_end_of_line();
+				}
+				else if (step.operation == extraction_operation::quoted) {
+					return te.extract_quoted('\'', '\\');
 				}
 				else {
 					BOOST_FAIL("test bug: non-exhaustive operation implementation");
@@ -177,6 +180,48 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 			BOOST_TEST(test_text_extractor("X\nYY\nZZZ\n\n\n\n", steps));
 		}
 
+		BOOST_AUTO_TEST_CASE(quoted_multiple)
+		{
+			auto const steps = {
+				extraction_step(extraction_operation::quoted, "'abc'", 1, 0),
+				extraction_step(extraction_operation::identifier, "XYZ", 1, 5),
+				extraction_step(extraction_operation::quoted, "'def'", 1, 8),
+				extraction_step(1, " ", 1, 13),
+				extraction_step(extraction_operation::number, "123", 1, 14),
+				extraction_step(2, "==", 1, 17),
+				extraction_step(extraction_operation::quoted, "'cccc'", 1, 19),
+				extraction_step(1, ":", 1, 25),
+				extraction_step(extraction_operation::quoted, "'XX'", 1, 26)
+			};
+			BOOST_TEST(test_text_extractor("'abc'XYZ'def' 123=='cccc':'XX'", steps));
+		}
+
+		BOOST_AUTO_TEST_CASE(quoted_escape)
+		{
+			std::string_view const text = R"('abc\na\b\bccc\\\nX')";
+			auto const steps = {
+				extraction_step(extraction_operation::quoted, text, 1, 0)
+			};
+			BOOST_TEST(test_text_extractor(text, steps));
+		}
+
+		BOOST_AUTO_TEST_CASE(quoted_escape_multiple)
+		{
+			auto const steps = {
+				extraction_step(extraction_operation::quoted, R"('abc\n')", 1, 0),
+				extraction_step(extraction_operation::identifier, "XYZ", 1, 7),
+				extraction_step(extraction_operation::number, "4", 1, 10),
+				extraction_step(extraction_operation::quoted, R"('a\bc')", 1, 11),
+				extraction_step(1, " ", 1, 17),
+				extraction_step(extraction_operation::number, "543", 1, 18),
+				extraction_step(1, "=", 1, 21),
+				extraction_step(extraction_operation::quoted, R"('cc\\\\')", 1, 22),
+				extraction_step(1, ":", 1, 30),
+				extraction_step(extraction_operation::quoted, R"('\nX')", 1, 31)
+			};
+			BOOST_TEST(test_text_extractor(R"('abc\n'XYZ4'a\bc' 543='cc\\\\':'\nX')", steps));
+		}
+
 		BOOST_AUTO_TEST_CASE(all)
 		{
 			auto const steps = {
@@ -191,8 +236,12 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 				extraction_step(extraction_operation::until_end_of_line, " a % 5", 2, 9),
 				extraction_step(1, "\n", 2, 15),
 				extraction_step(2, "*$", 3,  0),
+				extraction_step(extraction_operation::quoted, "'a\\bc'", 3, 2),
+				extraction_step(1, " ", 3, 8),
+				extraction_step(extraction_operation::quoted, "''", 3, 9)
 			};
-			BOOST_TEST(test_text_extractor("ccc x\nXYZ __123 a % 5\n*$", steps));
+			BOOST_TEST(test_text_extractor("ccc x\nXYZ __123 a % 5\n*$'a\\bc' ''", steps));
+
 		}
 
 	BOOST_AUTO_TEST_SUITE_END()

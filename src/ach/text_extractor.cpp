@@ -68,4 +68,55 @@ text_location text_extractor::extract_until_end_of_line()
 	return extract_by([](char c) { return c != '\n'; });
 }
 
+text_location text_extractor::extract_quoted(char quote, char escape)
+{
+	if (peek_next_char() != quote) {
+		return text_location();
+	}
+
+	std::string_view const remaining = [this]() {
+		std::string_view text = remaining_line_text();
+		assert(text.size() >= 1u);
+		text.remove_prefix(1u);
+		return text;
+	}();
+
+	const auto first = remaining.begin();
+	const auto last  = remaining.end();
+
+	bool inside_escape = false;
+	bool closing_quote_found = false;
+	auto it = first;
+	for (; it != last; ++it) {
+		if (inside_escape) {
+			inside_escape = false;
+			continue; // we don't really care what is being escaped
+		}
+
+		if (*it == escape) {
+			inside_escape = true;
+			continue;
+		}
+
+		if (*it == quote) {
+			++it;
+			closing_quote_found = true;
+			break;
+		}
+	}
+
+	if (inside_escape) { // remaining text finished before escape was fullfilled - this is an error
+		return text_location();
+	}
+
+	if (!closing_quote_found) {
+		return text_location();
+	}
+
+	auto const length = 1 + (it - first); // 1 is the starting quote, rest is the loop
+	auto const result = text_location(line_number, current_line, column_number, length);
+	skip(length);
+	return result;
+}
+
 }

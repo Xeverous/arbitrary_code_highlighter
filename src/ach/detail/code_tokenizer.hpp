@@ -28,6 +28,10 @@ public:
 		return extractor.extract_until_end_of_line();
 	}
 
+	text_location extract_quoted(char quote, char escape) {
+		return extractor.extract_quoted(quote, escape);
+	}
+
 	[[nodiscard]] bool has_reached_end() const noexcept { return extractor.has_reached_end(); }
 	text_location current_location() const noexcept { return extractor.current_location(); }
 

@@ -37,7 +37,10 @@ struct number
 
 struct quoted_span
 {
+	css_class primary_class;
+	css_class escape_class;
 	char delimeter;
+	char escape;
 };
 
 struct end_of_line {};

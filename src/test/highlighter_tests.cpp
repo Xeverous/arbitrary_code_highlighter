@@ -73,6 +73,7 @@ boost::test_tools::assertion_result run_and_compare(
 		return false;
 	}
 
+	BOOST_TEST_REQUIRE(std::holds_alternative<std::string>(output));
 	auto const actual_output = static_cast<std::string_view>(std::get<std::string>(output));
 
 	if (actual_output == expected_output)
@@ -171,6 +172,32 @@ BOOST_AUTO_TEST_SUITE(highlighter_suite)
 			"\n"
 			"\n"
 			"<span class=\"variable\">g</span>*<span class=\"variable\">h</span>^<span class=\"variable\">i</span>"));
+	}
+
+	BOOST_AUTO_TEST_CASE(quoted_text)
+	{
+		BOOST_TEST(run_and_compare(
+			R"('foo' + "bar")",
+			"chr + str",
+			"<span class=\"chr\">'foo'</span> + <span class=\"str\">\"bar\"</span>"));
+	}
+
+	BOOST_AUTO_TEST_CASE(quoted_text_escapes)
+	{
+		BOOST_TEST(run_and_compare(
+			R"(X: 'abc' + "string\nwith\bescapes")",
+			"variable: chr + str",
+			"<span class=\"variable\">X</span>: <span class=\"chr\">'abc'</span> + "
+			"<span class=\"str\">\"string<span class=\"str_esc\">\\n</span>with<span class=\"str_esc\">\\b</span>escapes\"</span>"));
+	}
+
+	BOOST_AUTO_TEST_CASE(quoted_text_escapes_adjacent)
+	{
+		BOOST_TEST(run_and_compare(
+			R"('a\b\a\bc' + "lorem\n\nipsum\n\0\adolor")",
+			"chr + str",
+			"<span class=\"chr\">'a<span class=\"chr_esc\">\\b\\a\\b</span>c'</span> + "
+			"<span class=\"str\">\"lorem<span class=\"str_esc\">\\n\\n</span>ipsum<span class=\"str_esc\">\\n\\0\\a</span>dolor\"</span>"));
 	}
 
 	BOOST_AUTO_TEST_CASE(replace_underscores_to_hyphens)

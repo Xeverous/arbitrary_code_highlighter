@@ -13,7 +13,7 @@ namespace {
 using namespace ach;
 using namespace ach::detail;
 
-using result_t = std::variant<span_element, highlighter_error>;
+using result_t = std::variant<simple_span_element, quote_span_element, highlighter_error>;
 
 result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 {
@@ -25,7 +25,7 @@ result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 				return highlighter_error{color_tn.origin, loc_code_id, "expected identifier"};
 			}
 
-			return span_element{html_text{loc_code_id.str()}, id_span.class_};
+			return simple_span_element{html_text{loc_code_id.str()}, id_span.class_};
 		},
 		[&](fixed_length_span fl_span) -> result_t {
 			text_location const loc_fl_text = code_tr.extract_n_characters(fl_span.length);
@@ -36,11 +36,11 @@ result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 				return highlighter_error{color_tn.origin, loc_fl_text, "insufficient characters for fixed-length span"};
 			}
 
-			return span_element{html_text{loc_fl_text.str()}, fl_span.class_};
+			return simple_span_element{html_text{loc_fl_text.str()}, fl_span.class_};
 		},
 		[&](line_delimited_span ld_span) -> result_t {
 			text_location const loc_ld_text = code_tr.extract_until_end_of_line();
-			return span_element{html_text{loc_ld_text.str()}, ld_span.class_};
+			return simple_span_element{html_text{loc_ld_text.str()}, ld_span.class_};
 		},
 		[&](symbol s) -> result_t {
 			text_location const loc_symbol = code_tr.extract_n_characters(1);
@@ -53,7 +53,7 @@ result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 				return highlighter_error{color_tn.origin, loc_symbol, "symbols do not match"};
 			}
 
-			return span_element{html_text{loc_symbol.str()}, std::nullopt};
+			return simple_span_element{html_text{loc_symbol.str()}, std::nullopt};
 		},
 		[&](number num) -> result_t {
 			text_location const loc_num = code_tr.extract_number();
@@ -62,11 +62,16 @@ result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 				return highlighter_error{color_tn.origin, loc_num, "expected number"};
 			}
 
-			return span_element{html_text{loc_num.str()}, num.class_};
+			return simple_span_element{html_text{loc_num.str()}, num.class_};
 		},
-		[&](quoted_span) -> result_t {
-			assert("NOT IMPLEMENTED" && false);
-			return span_element{html_text{""}, std::nullopt};
+		[&](quoted_span span) -> result_t {
+			text_location const loc = code_tr.extract_quoted(span.delimeter, span.escape);
+
+			if (loc.str().empty()) {
+				return highlighter_error{color_tn.origin, loc, "failed to parse quoted text"};
+			}
+
+			return quote_span_element{html_text{loc.str()}, span.primary_class, span.escape_class, span.escape};
 		},
 		[&](end_of_line) -> result_t {
 			text_location const loc_eol = code_tr.extract_n_characters(1);
@@ -79,11 +84,11 @@ result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 				return highlighter_error{color_tn.origin, loc_eol, "expected line feed character"};
 			}
 
-			return span_element{html_text{loc_eol.str()}, std::nullopt};
+			return simple_span_element{html_text{loc_eol.str()}, std::nullopt};
 		},
-		[&](end_of_input /* eoi */) -> result_t {
+		[&](end_of_input) -> result_t {
 			if (code_tr.has_reached_end())  {
-				return span_element{html_text{""}, std::nullopt};
+				return simple_span_element{html_text{""}, std::nullopt};
 			}
 
 			return highlighter_error{
@@ -113,17 +118,21 @@ std::variant<std::string, highlighter_error> run_highlighter(
 	while (!color_tr.has_reached_end()) {
 		result_t result = process_color_token(color_tr.next_token(options.color), code_tr);
 
-		if (auto ptr = std::get_if<highlighter_error>(&result); ptr != nullptr) {
-			return *ptr;
-		}
+		auto maybe_error = std::visit(utility::visitor{
+			[](highlighter_error error) -> std::optional<highlighter_error> {
+				return error;
+			},
+			[&](auto span) -> std::optional<highlighter_error> {
+				builder.add_span(span, options.generation.replace_underscores_to_hyphens);
+				return std::nullopt;
+			}
+		}, result);
 
-		builder.add_span(
-			std::get<span_element>(result),
-			options.generation.replace_underscores_to_hyphens);
+		if (maybe_error)
+			return *maybe_error;
 	}
 
 	assert(code_tr.has_reached_end());
-
 	return std::move(builder.str());
 }
 
