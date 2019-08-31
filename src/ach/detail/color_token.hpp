@@ -25,15 +25,17 @@ struct line_delimited_span
 	css_class class_;
 };
 
+struct number
+{
+	css_class class_;
+};
+
 struct symbol
 {
 	char expected_symbol;
 };
 
-struct number
-{
-	css_class class_;
-};
+struct empty_token {};
 
 struct quoted_span
 {
@@ -56,8 +58,9 @@ using color_token_variant = std::variant<
 	fixed_length_span,
 	line_delimited_span,
 
-	symbol,
 	number,
+	symbol,
+	empty_token,
 
 	quoted_span,
 

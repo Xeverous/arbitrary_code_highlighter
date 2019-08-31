@@ -144,6 +144,14 @@ BOOST_AUTO_TEST_SUITE(highlighter_suite)
 			"! @ # $ % ^ &amp; * () - + = [ ] { } &lt; &gt; | : . , ; ~ ? /"));
 	}
 
+	BOOST_AUTO_TEST_CASE(empty_token)
+	{
+		BOOST_TEST(run_and_compare(
+			"run(*args, **kwargs)",
+			"func(1oo`param, 2oo`param)",
+			"<span class=\"func\">run</span>(<span class=\"oo\">*</span><span class=\"param\">args</span>, <span class=\"oo\">**</span><span class=\"param\">kwargs</span>)"));
+	}
+
 	BOOST_AUTO_TEST_CASE(end_of_line)
 	{
 		BOOST_TEST(run_and_compare(

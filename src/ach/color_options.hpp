@@ -15,6 +15,7 @@ struct color_options
 	static constexpr auto default_chr_esc_token_keyword = "chr_esc";
 
 	static constexpr auto default_escape_char = '\\';
+	static constexpr auto default_empty_token_char = '`';
 
 	std::string_view num_token_keyword = default_num_token_keyword;
 
@@ -25,6 +26,8 @@ struct color_options
 	std::string_view chr_token_keyword = default_chr_token_keyword;
 	std::string_view chr_esc_token_keyword = default_chr_esc_token_keyword;
 	char chr_escape = default_escape_char;
+
+	char empty_token_char = default_empty_token_char;
 };
 
 }

@@ -58,6 +58,9 @@ color_token color_tokenizer::next_token(color_options options)
 	else if (next_char == '\n') {
 		return color_token{end_of_line{}, extractor.extract_n_characters(1)};
 	}
+	else if (next_char == options.empty_token_char) {
+		return color_token{empty_token{}, extractor.extract_n_characters(1)};
+	}
 
 	// unknown character - treat as a symbol token
 	text_location const loc = extractor.extract_n_characters(1);

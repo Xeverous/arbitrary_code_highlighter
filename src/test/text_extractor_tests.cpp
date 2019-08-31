@@ -138,7 +138,7 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 			BOOST_TEST(test_text_extractor("abc def ghi", steps));
 		}
 
-		BOOST_AUTO_TEST_CASE(identifiers_alnum)
+		BOOST_AUTO_TEST_CASE(identifiers_alnum_space_breaked)
 		{
 			auto const steps = {
 				extraction_step(extraction_operation::identifier, "ab1c", 1, 0),
@@ -148,6 +148,18 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 				extraction_step(extraction_operation::identifier, "g4hi5", 1, 10),
 			};
 			BOOST_TEST(test_text_extractor("ab1c def2 g4hi5", steps));
+		}
+
+		BOOST_AUTO_TEST_CASE(identifiers_alnum_empty_token_breaked)
+		{
+			auto const steps = {
+				extraction_step(extraction_operation::identifier, "ab1c", 1, 0),
+				extraction_step(1, "`", 1, 4),
+				extraction_step(extraction_operation::identifier, "def2", 1, 5),
+				extraction_step(1, "`", 1, 9),
+				extraction_step(extraction_operation::identifier, "g4hi5", 1, 10),
+			};
+			BOOST_TEST(test_text_extractor("ab1c`def2`g4hi5", steps));
 		}
 
 		BOOST_AUTO_TEST_CASE(identifiers_line_breaked)
@@ -253,21 +265,23 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 		{
 			auto const steps = {
 				extraction_step(extraction_operation::identifier, "ccc7", 1, 0),
-				extraction_step(1, " ",  1, 4),
+				extraction_step(1, " ",  1,  4),
 				extraction_step(extraction_operation::identifier, "x",    1, 5),
-				extraction_step(1, "\n", 1, 6),
-				extraction_step(extraction_operation::identifier, "XYZ",  2, 0),
-				extraction_step(1, " ",  2, 3),
+				extraction_step(1, "\n", 1,  6),
+				extraction_step(extraction_operation::identifier, "X",  2, 0),
+				extraction_step(1, "`",  2,  1),
+				extraction_step(extraction_operation::identifier, "Z",  2, 2),
+				extraction_step(1, " ",  2,  3),
 				extraction_step(extraction_operation::alphas_underscores, "__",  2, 4),
 				extraction_step(extraction_operation::digits,     "123", 2, 6),
 				extraction_step(extraction_operation::until_end_of_line, " a % 5", 2, 9),
 				extraction_step(1, "\n", 2, 15),
 				extraction_step(2, "*$", 3,  0),
 				extraction_step(extraction_operation::quoted, "'a\\bc'", 3, 2),
-				extraction_step(1, " ", 3, 8),
+				extraction_step(1, " ",  3,  8),
 				extraction_step(extraction_operation::quoted, "''", 3, 9)
 			};
-			BOOST_TEST(test_text_extractor("ccc7 x\nXYZ __123 a % 5\n*$'a\\bc' ''", steps));
+			BOOST_TEST(test_text_extractor("ccc7 x\nX`Z __123 a % 5\n*$'a\\bc' ''", steps));
 		}
 
 	BOOST_AUTO_TEST_SUITE_END()
