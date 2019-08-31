@@ -36,8 +36,8 @@ public:
 	}
 
 	// if any of these fails, a location with empty substring should be returned
-	text_location extract_identifier();
-	text_location extract_number();
+	text_location extract_alphas_underscores();
+	text_location extract_digits();
 	text_location extract_n_characters(int n);
 	text_location extract_until_end_of_line();
 	text_location extract_quoted(char quote, char escape);

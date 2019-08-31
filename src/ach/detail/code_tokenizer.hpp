@@ -13,11 +13,11 @@ public:
 	: extractor(text) {}
 
 	text_location extract_identifier() {
-		return extractor.extract_identifier();
+		return extractor.extract_alphas_underscores();
 	}
 
-	text_location extract_number() {
-		return extractor.extract_number();
+	text_location extract_digits() {
+		return extractor.extract_digits();
 	}
 
 	text_location extract_n_characters(int n) {

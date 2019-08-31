@@ -13,8 +13,8 @@ color_token color_tokenizer::next_token(color_options options)
 	}
 
 	char const next_char = *c;
-	if (is_identifier_char(next_char)) {
-		text_location const loc = extractor.extract_identifier();
+	if (is_alpha_or_underscore(next_char)) {
+		text_location const loc = extractor.extract_alphas_underscores();
 		std::string_view const identifier = loc.str();
 
 		if (identifier == options.num_token_keyword) {
@@ -36,8 +36,8 @@ color_token color_tokenizer::next_token(color_options options)
 		return color_token{identifier_span{identifier}, loc};
 	}
 	else if (is_digit(next_char)) {
-		text_location const loc_num = extractor.extract_number();
-		text_location const loc_id = extractor.extract_identifier();
+		text_location const loc_num = extractor.extract_digits();
+		text_location const loc_id = extractor.extract_alphas_underscores();
 
 		auto const num_str = loc_num.str();
 		int num = 0;

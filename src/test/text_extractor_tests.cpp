@@ -71,10 +71,10 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 
 			auto const loc = [&]() -> ach::text_location {
 				if (step.operation == extraction_operation::identifier) {
-					return te.extract_identifier();
+					return te.extract_alphas_underscores();
 				}
 				else if (step.operation == extraction_operation::number) {
-					return te.extract_number();
+					return te.extract_digits();
 				}
 				else if (step.operation == extraction_operation::n_characters) {
 					return te.extract_n_characters(step.n);

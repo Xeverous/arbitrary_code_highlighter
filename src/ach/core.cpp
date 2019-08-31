@@ -56,7 +56,7 @@ result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 			return simple_span_element{html_text{loc_symbol.str()}, std::nullopt};
 		},
 		[&](number num) -> result_t {
-			text_location const loc_num = code_tr.extract_number();
+			text_location const loc_num = code_tr.extract_digits();
 
 			if (loc_num.str().empty()) {
 				return highlighter_error{color_tn.origin, loc_num, "expected number"};

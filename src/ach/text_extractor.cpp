@@ -42,12 +42,12 @@ text_location text_extractor::extract_by(Predicate pred)
 	return result;
 }
 
-text_location text_extractor::extract_identifier()
+text_location text_extractor::extract_alphas_underscores()
 {
-	return extract_by(detail::is_identifier_char);
+	return extract_by(detail::is_alpha_or_underscore);
 }
 
-text_location text_extractor::extract_number()
+text_location text_extractor::extract_digits()
 {
 	return extract_by(detail::is_digit);
 }

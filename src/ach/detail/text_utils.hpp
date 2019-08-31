@@ -14,12 +14,17 @@ constexpr bool is_alpha(char c) noexcept
 
 constexpr bool is_alnum(char c) noexcept
 {
-	return is_digit(c) || is_alpha(c);
+	return is_alpha(c) || is_digit(c);
 }
 
-constexpr bool is_identifier_char(char c) noexcept
+constexpr bool is_alpha_or_underscore(char c) noexcept
 {
 	return is_alpha(c) || c == '_';
+}
+
+constexpr bool is_alnum_or_underscore(char c) noexcept
+{
+	return is_alnum(c) || c == '_';
 }
 
 }
