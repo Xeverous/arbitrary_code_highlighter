@@ -13,7 +13,7 @@ public:
 	: extractor(text) {}
 
 	text_location extract_identifier() {
-		return extractor.extract_alphas_underscores();
+		return extractor.extract_identifier();
 	}
 
 	text_location extract_digits() {

@@ -8,7 +8,7 @@ if(${CMAKE_VERSION} VERSION_LESS 3.12)
 endif()
 
 project(arbitrary_code_highlighter
-	VERSION 1.0.0
+	VERSION 1.1.0
 	DESCRIPTION "Embed arbitrary code in HTML <span> tags with CSS classes of your choice for rich syntax highlightning."
 	LANGUAGES CXX)
 

@@ -42,6 +42,21 @@ text_location text_extractor::extract_by(Predicate pred)
 	return result;
 }
 
+text_location text_extractor::extract_identifier()
+{
+	std::optional<char> const next_char = peek_next_char();
+
+	if (!next_char) {
+		return text_location();
+	}
+
+	if (!detail::is_alpha_or_underscore(*next_char)) {
+		return text_location();
+	}
+
+	return extract_by(detail::is_alnum_or_underscore);
+}
+
 text_location text_extractor::extract_alphas_underscores()
 {
 	return extract_by(detail::is_alpha_or_underscore);

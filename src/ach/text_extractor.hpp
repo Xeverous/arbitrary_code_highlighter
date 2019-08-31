@@ -36,6 +36,7 @@ public:
 	}
 
 	// if any of these fails, a location with empty substring should be returned
+	text_location extract_identifier();
 	text_location extract_alphas_underscores();
 	text_location extract_digits();
 	text_location extract_n_characters(int n);

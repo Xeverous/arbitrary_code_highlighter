@@ -31,7 +31,7 @@ void html_builder::open_span(css_class class_, bool replace_underscores_to_hyphe
 
 void html_builder::close_span()
 {
-	result += "</span>";;
+	result += "</span>";
 }
 
 void html_builder::append_class(css_class class_, bool replace_underscores_to_hyphens)
