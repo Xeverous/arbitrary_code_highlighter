@@ -17,19 +17,19 @@ color_token color_tokenizer::next_token(color_options options)
 		text_location const loc = extractor.extract_alphas_underscores();
 		std::string_view const identifier = loc.str();
 
-		if (identifier == options.num_token_keyword) {
+		if (identifier == options.num_class) {
 			return color_token{number{identifier}, loc};
 		}
 
-		if (identifier == options.str_token_keyword) {
+		if (identifier == options.str_class) {
 			return color_token{
-				quoted_span{options.str_token_keyword, options.str_esc_token_keyword, '"', options.str_escape},
+				quoted_span{options.str_class, options.str_esc_class, '"', options.escape_char},
 				loc};
 		}
 
-		if (identifier == options.chr_token_keyword) {
+		if (identifier == options.chr_class) {
 			return color_token{
-				quoted_span{options.chr_token_keyword, options.chr_esc_token_keyword, '\'', options.chr_escape},
+				quoted_span{options.chr_class, options.chr_esc_class, '\'', options.escape_char},
 				loc};
 		}
 

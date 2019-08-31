@@ -1,7 +1,9 @@
 # https://pabloariasal.github.io/2018/02/19/its-time-to-do-cmake-right/
 # https://cliutils.gitlab.io/modern-cmake/
 
-cmake_minimum_required(VERSION 3.8...3.14)
+# minimal version is 3.9 because of IPO policy changes in this version
+# https://cmake.org/cmake/help/latest/policy/CMP0069.html#policy:CMP0069
+cmake_minimum_required(VERSION 3.9...3.14)
 
 if(${CMAKE_VERSION} VERSION_LESS 3.12)
     cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
@@ -27,6 +29,8 @@ endif()
 
 option(ACH_BUILD_EXECUTABLE_CLI
 	"build ACH command line interface program" ON)
+option(ACH_BUILD_PYTHON_MODULE
+	"build ACH Python extension module" ON)
 option(ACH_BUILD_TESTS
 	"build ACH tests" ON)
 

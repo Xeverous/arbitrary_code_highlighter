@@ -1,5 +1,7 @@
 #include "parse_args.hpp"
 
+#include <ach/version.hpp>
+
 #include <boost/program_options.hpp>
 #include <boost/optional.hpp>
 
@@ -13,11 +15,7 @@ namespace
 
 void print_help(const boost::program_options::options_description& options)
 {
-	std::cout <<
-		"Arbitrary Code Highlighter - embed arbitrary code in HTML <span> tags with\n"
-		"CSS classes of your choice for rich syntax highlightning.\n"
-		"This program generates HTML only. CSS is your responsibility.\n"
-		"See documentation for examples.\n";
+	std::cout << ach::program_description;
 
 	options.print(std::cout);
 

@@ -64,7 +64,7 @@ result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 
 			return simple_span_element{html_text{loc_num.str()}, num.class_};
 		},
-		[&](empty_token et) -> result_t {
+		[&](empty_token) -> result_t {
 			return simple_span_element{html_text{}, std::nullopt};
 		},
 		[&](quoted_span span) -> result_t {
