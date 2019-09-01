@@ -108,7 +108,13 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 
 	BOOST_AUTO_TEST_SUITE(main_text_extractor_tests,
 		* ut::depends_on("text_extractor_suite/empty_input_invariants"))
-
+		/*
+		 * Do not write "auto const steps =" in the tests, there is a bug in GCC with
+		 * initializer list type deduction which breaks constness and causes compile error.
+		 *
+		 * https://gcc.gnu.org/bugzilla/show_bug.cgi?id=63149
+		 * https://stackoverflow.com/questions/32515183
+		 */
 		BOOST_AUTO_TEST_CASE(empty_input)
 		{
 			BOOST_TEST(test_text_extractor("", {}));
@@ -116,7 +122,7 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 
 		BOOST_AUTO_TEST_CASE(alphas_underscores_space_breaked)
 		{
-			auto const steps = {
+			auto steps = {
 				extraction_step(extraction_operation::identifier, "a_c", 1, 0),
 				extraction_step(1, " ", 1, 3),
 				extraction_step(extraction_operation::identifier, "d_f", 1, 4),
@@ -128,7 +134,7 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 
 		BOOST_AUTO_TEST_CASE(identifiers_space_breaked)
 		{
-			auto const steps = {
+			auto steps = {
 				extraction_step(extraction_operation::identifier, "abc", 1, 0),
 				extraction_step(1, " ", 1, 3),
 				extraction_step(extraction_operation::identifier, "def", 1, 4),
@@ -140,7 +146,7 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 
 		BOOST_AUTO_TEST_CASE(identifiers_alnum_space_breaked)
 		{
-			auto const steps = {
+			auto steps = {
 				extraction_step(extraction_operation::identifier, "ab1c", 1, 0),
 				extraction_step(1, " ", 1, 4),
 				extraction_step(extraction_operation::identifier, "def2", 1, 5),
@@ -152,7 +158,7 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 
 		BOOST_AUTO_TEST_CASE(identifiers_alnum_empty_token_breaked)
 		{
-			auto const steps = {
+			auto steps = {
 				extraction_step(extraction_operation::identifier, "ab1c", 1, 0),
 				extraction_step(1, "`", 1, 4),
 				extraction_step(extraction_operation::identifier, "def2", 1, 5),
@@ -164,7 +170,7 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 
 		BOOST_AUTO_TEST_CASE(identifiers_line_breaked)
 		{
-			auto const steps = {
+			auto steps = {
 				extraction_step(extraction_operation::identifier, "abc", 1, 0),
 				extraction_step(1, "\n", 1, 3),
 				extraction_step(extraction_operation::identifier, "def", 2, 0),
@@ -177,7 +183,7 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 
 		BOOST_AUTO_TEST_CASE(alphas_underscores_number_breaked)
 		{
-			auto const steps = {
+			auto steps = {
 				extraction_step(extraction_operation::alphas_underscores, "a",   1, 0),
 				extraction_step(extraction_operation::digits,             "1",   1, 1),
 				extraction_step(extraction_operation::alphas_underscores, "bb",  1, 2),
@@ -190,7 +196,7 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 
 		BOOST_AUTO_TEST_CASE(n_characters)
 		{
-			auto const steps = {
+			auto steps = {
 				extraction_step(1, "a",    1, 0),
 				extraction_step(2, "bb",   1, 1),
 				extraction_step(3, "ccc",  1, 3),
@@ -202,7 +208,7 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 
 		BOOST_AUTO_TEST_CASE(line_breaks)
 		{
-			auto const steps = {
+			auto steps = {
 				extraction_step(extraction_operation::until_end_of_line, "X",   1, 0),
 				extraction_step(1, "\n", 1, 1),
 				extraction_step(extraction_operation::until_end_of_line, "YY",  2, 0),
@@ -221,7 +227,7 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 
 		BOOST_AUTO_TEST_CASE(quoted_multiple)
 		{
-			auto const steps = {
+			auto steps = {
 				extraction_step(extraction_operation::quoted, "'abc'", 1, 0),
 				extraction_step(extraction_operation::identifier, "XYZ", 1, 5),
 				extraction_step(extraction_operation::quoted, "'def'", 1, 8),
@@ -238,7 +244,7 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 		BOOST_AUTO_TEST_CASE(quoted_escape)
 		{
 			std::string_view const text = R"('abc\na\b\bccc\\\nX')";
-			auto const steps = {
+			auto steps = {
 				extraction_step(extraction_operation::quoted, text, 1, 0)
 			};
 			BOOST_TEST(test_text_extractor(text, steps));
@@ -246,7 +252,7 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 
 		BOOST_AUTO_TEST_CASE(quoted_escape_multiple)
 		{
-			auto const steps = {
+			auto steps = {
 				extraction_step(extraction_operation::quoted, R"('abc\n')", 1, 0),
 				extraction_step(extraction_operation::alphas_underscores, "XYZ", 1, 7),
 				extraction_step(extraction_operation::digits, "4", 1, 10),
@@ -263,7 +269,7 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 
 		BOOST_AUTO_TEST_CASE(all)
 		{
-			auto const steps = {
+			auto steps = {
 				extraction_step(extraction_operation::identifier, "ccc7", 1, 0),
 				extraction_step(1, " ",  1,  4),
 				extraction_step(extraction_operation::identifier, "x",    1, 5),
