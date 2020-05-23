@@ -27,37 +27,34 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 		extraction_step( // non n_characters ctor
 			extraction_operation operation,
 			std::string_view expected_token,
-			int expected_line_number,
-			int expected_first_column)
+			std::size_t expected_line_number,
+			std::size_t expected_first_column)
 		: operation(operation)
 		, expected_token(expected_token)
 		, expected_line_number(expected_line_number)
-		, expected_first_column(expected_first_column) {}
+		, expected_first_column(expected_first_column)
+		{
+		}
 
 		extraction_step( // n_characters ctor
-			int n,
 			std::string_view expected_token,
-			int expected_line_number,
-			int expected_first_column,
+			std::size_t expected_line_number,
+			std::size_t expected_first_column,
 			bool load_next_line = false)
 		: operation(extraction_operation::n_characters)
 		, expected_token(expected_token)
 		, expected_line_number(expected_line_number)
 		, expected_first_column(expected_first_column)
-		, n(n)
 		, load_next_line(load_next_line)
 		{
-			BOOST_TEST_REQUIRE(n == static_cast<int>(expected_token.size()),
-				"test written incorrectly: length of expected token does not match n");
 		}
 
 		extraction_operation operation;
 		std::string_view expected_token;
-		int expected_line_number = 0;
-		int expected_first_column = 0;
+		std::size_t expected_line_number = 0;
+		std::size_t expected_first_column = 0;
 
 		// only for extraction_operation::n_characters
-		int n = 0;
 		bool load_next_line = false;
 	};
 
@@ -85,7 +82,7 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 					return te.extract_identifier();
 				}
 				else if (step.operation == extraction_operation::n_characters) {
-					ach::text_location loc = te.extract_n_characters(step.n);
+					ach::text_location loc = te.extract_n_characters(step.expected_token.size());
 
 					if (step.load_next_line)
 						BOOST_TEST(te.load_next_line());
@@ -134,9 +131,9 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 		{
 			auto steps = {
 				extraction_step(extraction_operation::identifier, "a_c", 1, 0),
-				extraction_step(1, " ", 1, 3),
+				extraction_step(" ", 1, 3),
 				extraction_step(extraction_operation::identifier, "d_f", 1, 4),
-				extraction_step(1, " ", 1, 7),
+				extraction_step(" ", 1, 7),
 				extraction_step(extraction_operation::identifier, "g_i", 1, 8),
 			};
 			BOOST_TEST(test_text_extractor("a_c d_f g_i", steps));
@@ -146,9 +143,9 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 		{
 			auto steps = {
 				extraction_step(extraction_operation::identifier, "abc", 1, 0),
-				extraction_step(1, " ", 1, 3),
+				extraction_step(" ", 1, 3),
 				extraction_step(extraction_operation::identifier, "def", 1, 4),
-				extraction_step(1, " ", 1, 7),
+				extraction_step(" ", 1, 7),
 				extraction_step(extraction_operation::identifier, "ghi", 1, 8),
 			};
 			BOOST_TEST(test_text_extractor("abc def ghi", steps));
@@ -158,9 +155,9 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 		{
 			auto steps = {
 				extraction_step(extraction_operation::identifier, "ab1c", 1, 0),
-				extraction_step(1, " ", 1, 4),
+				extraction_step(" ", 1, 4),
 				extraction_step(extraction_operation::identifier, "def2", 1, 5),
-				extraction_step(1, " ", 1, 9),
+				extraction_step(" ", 1, 9),
 				extraction_step(extraction_operation::identifier, "g4hi5", 1, 10),
 			};
 			BOOST_TEST(test_text_extractor("ab1c def2 g4hi5", steps));
@@ -170,9 +167,9 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 		{
 			auto steps = {
 				extraction_step(extraction_operation::identifier, "ab1c", 1, 0),
-				extraction_step(1, "`", 1, 4),
+				extraction_step("`", 1, 4),
 				extraction_step(extraction_operation::identifier, "def2", 1, 5),
-				extraction_step(1, "`", 1, 9),
+				extraction_step("`", 1, 9),
 				extraction_step(extraction_operation::identifier, "g4hi5", 1, 10),
 			};
 			BOOST_TEST(test_text_extractor("ab1c`def2`g4hi5", steps));
@@ -182,11 +179,11 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 		{
 			auto steps = {
 				extraction_step(extraction_operation::identifier, "abc", 1, 0),
-				extraction_step(1, "\n", 1, 3, true),
+				extraction_step("\n", 1, 3, true),
 				extraction_step(extraction_operation::identifier, "def", 2, 0),
-				extraction_step(1, "\n", 2, 3, true),
+				extraction_step("\n", 2, 3, true),
 				extraction_step(extraction_operation::identifier, "ghi", 3, 0),
-				extraction_step(1, "\n", 3, 3)
+				extraction_step("\n", 3, 3)
 			};
 			BOOST_TEST(test_text_extractor("abc\ndef\nghi\n", steps));
 		}
@@ -207,11 +204,11 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 		BOOST_AUTO_TEST_CASE(n_characters)
 		{
 			auto steps = {
-				extraction_step(1, "a",    1, 0),
-				extraction_step(2, "bb",   1, 1),
-				extraction_step(3, "ccc",  1, 3),
-				extraction_step(4, "dddd", 1, 6),
-				extraction_step(1, "e",    1, 10)
+				extraction_step("a",    1, 0),
+				extraction_step("bb",   1, 1),
+				extraction_step("ccc",  1, 3),
+				extraction_step("dddd", 1, 6),
+				extraction_step("e",    1, 10)
 			};
 			BOOST_TEST(test_text_extractor("abbcccdddde", steps));
 		}
@@ -220,17 +217,17 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 		{
 			auto steps = {
 				extraction_step(extraction_operation::until_end_of_line, "X",   1, 0),
-				extraction_step(1, "\n", 1, 1, true),
+				extraction_step("\n", 1, 1, true),
 				extraction_step(extraction_operation::until_end_of_line, "YY",  2, 0),
-				extraction_step(1, "\n", 2, 2, true),
+				extraction_step("\n", 2, 2, true),
 				extraction_step(extraction_operation::until_end_of_line, "ZZZ", 3, 0),
-				extraction_step(1, "\n", 3, 3, true),
+				extraction_step("\n", 3, 3, true),
 				extraction_step(extraction_operation::until_end_of_line, "",    4, 0),
-				extraction_step(1, "\n", 4, 0, true),
+				extraction_step("\n", 4, 0, true),
 				extraction_step(extraction_operation::until_end_of_line, "",    5, 0),
-				extraction_step(1, "\n", 5, 0, true),
+				extraction_step("\n", 5, 0, true),
 				extraction_step(extraction_operation::until_end_of_line, "",    6, 0),
-				extraction_step(1, "\n", 6, 0)
+				extraction_step("\n", 6, 0)
 			};
 			BOOST_TEST(test_text_extractor("X\nYY\nZZZ\n\n\n\n", steps));
 		}
@@ -241,11 +238,11 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 				extraction_step(extraction_operation::quoted, "'abc'", 1, 0),
 				extraction_step(extraction_operation::identifier, "XYZ", 1, 5),
 				extraction_step(extraction_operation::quoted, "'def'", 1, 8),
-				extraction_step(1, " ", 1, 13),
+				extraction_step(" ", 1, 13),
 				extraction_step(extraction_operation::digits, "123", 1, 14),
-				extraction_step(2, "==", 1, 17),
+				extraction_step("==", 1, 17),
 				extraction_step(extraction_operation::quoted, "'cccc'", 1, 19),
-				extraction_step(1, ":", 1, 25),
+				extraction_step(":", 1, 25),
 				extraction_step(extraction_operation::quoted, "'XX'", 1, 26)
 			};
 			BOOST_TEST(test_text_extractor("'abc'XYZ'def' 123=='cccc':'XX'", steps));
@@ -267,11 +264,11 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 				extraction_step(extraction_operation::alphas_underscores, "XYZ", 1, 7),
 				extraction_step(extraction_operation::digits, "4", 1, 10),
 				extraction_step(extraction_operation::quoted, R"('a\bc')", 1, 11),
-				extraction_step(1, " ", 1, 17),
+				extraction_step(" ", 1, 17),
 				extraction_step(extraction_operation::digits, "543", 1, 18),
-				extraction_step(1, "=", 1, 21),
+				extraction_step("=", 1, 21),
 				extraction_step(extraction_operation::quoted, R"('cc\\\\')", 1, 22),
-				extraction_step(1, ":", 1, 30),
+				extraction_step(":", 1, 30),
 				extraction_step(extraction_operation::quoted, R"('\nX')", 1, 31)
 			};
 			BOOST_TEST(test_text_extractor(R"('abc\n'XYZ4'a\bc' 543='cc\\\\':'\nX')", steps));
@@ -281,20 +278,20 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 		{
 			auto steps = {
 				extraction_step(extraction_operation::identifier, "ccc7", 1, 0),
-				extraction_step(1, " ",  1,  4),
+				extraction_step(" ",  1,  4),
 				extraction_step(extraction_operation::identifier, "x",    1, 5),
-				extraction_step(1, "\n", 1,  6, true),
+				extraction_step("\n", 1,  6, true),
 				extraction_step(extraction_operation::identifier, "X",  2, 0),
-				extraction_step(1, "`",  2,  1),
+				extraction_step("`",  2,  1),
 				extraction_step(extraction_operation::identifier, "Z",  2, 2),
-				extraction_step(1, " ",  2,  3),
+				extraction_step(" ",  2,  3),
 				extraction_step(extraction_operation::alphas_underscores, "__",  2, 4),
 				extraction_step(extraction_operation::digits,     "123", 2, 6),
 				extraction_step(extraction_operation::until_end_of_line, " a % 5", 2, 9),
-				extraction_step(1, "\n", 2, 15, true),
-				extraction_step(2, "*$", 3,  0),
+				extraction_step("\n", 2, 15, true),
+				extraction_step("*$", 3,  0),
 				extraction_step(extraction_operation::quoted, "'a\\bc'", 3, 2),
-				extraction_step(1, " ",  3,  8),
+				extraction_step(" ",  3,  8),
 				extraction_step(extraction_operation::quoted, "''", 3, 9)
 			};
 			BOOST_TEST(test_text_extractor("ccc7 x\nX`Z __123 a % 5\n*$'a\\bc' ''", steps));
