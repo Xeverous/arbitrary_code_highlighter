@@ -12,7 +12,7 @@ class html_builder
 public:
 	explicit html_builder() = default;
 
-	void reserve(int length) { result.reserve(length); };
+	void reserve(std::size_t n) { result.reserve(n); };
 	void add_span(simple_span_element span, bool replace_underscores_to_hyphens = false);
 	void add_span(quote_span_element span, bool replace_underscores_to_hyphens = false);
 

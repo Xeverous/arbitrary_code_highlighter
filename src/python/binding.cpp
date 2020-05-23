@@ -5,6 +5,7 @@
 
 #include <pybind11/pybind11.h>
 
+#include <algorithm>
 #include <optional>
 #include <stdexcept>
 #include <sstream>
@@ -13,7 +14,7 @@ namespace py = pybind11;
 
 namespace {
 
-std::string to_string(const ach::highlighter_error& error)
+std::string to_string(ach::highlighter_error const& error)
 {
 	std::stringstream ss;
 
@@ -23,12 +24,12 @@ std::string to_string(const ach::highlighter_error& error)
 		for (auto i = 0; i < tl.first_column(); ++i)
 			ss << ' ';
 
-		for (auto i = 0u; i < tl.str().size(); ++i)
+		for (auto i = 0u; i < std::max<std::size_t>(1u, tl.str().size()); ++i)
 			ss << '~';
 
 		ss << '\n';
 	};
-	ss << "ERROR:\n" << error.reason << "\nin code ";
+	ss << error.reason << "\nin code ";
 	append(error.code_location);
 	ss << "in color ";
 	append(error.color_location);

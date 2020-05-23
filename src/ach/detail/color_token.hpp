@@ -15,7 +15,7 @@ struct identifier_span
 struct fixed_length_span
 {
 	css_class class_;
-	int length;
+	std::size_t length;
 	text_location name_origin;
 	text_location length_origin;
 };

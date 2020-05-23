@@ -13,7 +13,7 @@ constexpr auto program_description =
 namespace ach::version {
 
 constexpr int major = 1;
-constexpr int minor = 2;
+constexpr int minor = 3;
 constexpr int patch = 0;
 
 }

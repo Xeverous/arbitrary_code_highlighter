@@ -25,6 +25,10 @@ target_compile_options(ach_core
 		$<$<CXX_COMPILER_ID:MSVC>:/W4>
 )
 
+if(ACH_ENABLE_LTO)
+	set_target_properties(ach_core PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
+endif()
+
 # nothing to link against
 # target_link_libraries(ach_core PRIVATE)
 

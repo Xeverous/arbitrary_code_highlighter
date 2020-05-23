@@ -30,3 +30,7 @@ target_link_libraries(ach_cli
 		ach_core
 		Boost::program_options
 )
+
+if(ACH_ENABLE_LTO)
+	set_target_properties(ach_cli PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
+endif()

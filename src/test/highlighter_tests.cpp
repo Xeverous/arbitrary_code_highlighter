@@ -1,35 +1,51 @@
 #include <ach/core.hpp>
+#include <ach/errors.hpp>
 #include <ach/text_location.hpp>
 
 #include <boost/test/unit_test.hpp>
 
 #include <string_view>
-#include <iostream>
+#include <ostream>
+#include <cstring>
+#include <algorithm>
 
-void print(ach::text_location tl)
+namespace ach {
+
+std::ostream& operator<<(std::ostream& os, ach::text_location tl)
 {
-	std::cout << "line " << tl.line_number() << ":\n" << tl.line() << '\n';
+	os << "line " << tl.line_number() << ":\n" << tl.line() << '\n';
 
-	for (auto i = 0; i < tl.first_column(); ++i)
-		std::cout << ' ';
+	for (auto i = 0u; i < tl.first_column(); ++i)
+		os << ' ';
 
-	for (auto i = 0u; i < tl.str().size(); ++i)
-		std::cout << '~';
+	auto const highlight_length = tl.str().size();
 
-	std::cout << '\n';
+	if (highlight_length == 0) {
+		os << '^';
+	}
+	else {
+		for (auto i = 0u; i < highlight_length; ++i)
+			os << '~';
+	}
+
+	return os << '\n';
 }
 
-void print_error(const ach::highlighter_error& error)
+std::ostream& operator<<(std::ostream& os, ach::highlighter_error const& error)
 {
-	std::cout << "ERROR:\n" << error.reason << "\nin code ";
-	print(error.code_location);
-	std::cout << "in color ";
-	print(error.color_location);
+	return os << error.reason
+		<< "\nin code " << error.code_location
+		<< "in color " << error.color_location;
 }
+
+}
+
+namespace {
 
 void find_and_print_mismatched_line(
 	std::string_view expected,
-	std::string_view actual)
+	std::string_view actual,
+	boost::test_tools::assertion_result& test_result)
 {
 	auto const expected_first = expected.data();
 	auto const expected_last  = expected.data() + expected.size();
@@ -38,21 +54,21 @@ void find_and_print_mismatched_line(
 	auto const [expected_it, actual_it] = std::mismatch(expected_first, expected_last, actual_first, actual_last);
 
 	auto const line_number = std::count(actual_first, actual_it, '\n');
-	std::cout << "on line " << line_number << " (expected/actual):\n";
+	test_result.message() << "on line " << line_number << " (expected/actual):\n";
 
-	auto const print_line = [](auto first, auto pos, auto last) {
+	auto const print_line = [&](auto first, auto pos, auto last) {
 		auto const line_first = std::find(std::make_reverse_iterator(pos), std::make_reverse_iterator(first), '\n').base();
 		auto const line_last = std::find(pos, last, '\n');
 
 		for (auto it = line_first; it != line_last; ++it)
-			std::cout << *it;
+			test_result.message() << *it;
 
-		std::cout << '\n';
+		test_result.message() << '\n';
 
 		for (auto it = line_first; it != pos; ++it)
-			std::cout << ' ';
+			test_result.message() << ' ';
 
-		std::cout << "^\n";
+		test_result.message() << "^\n";
 	};
 
 	print_line(expected_first, expected_it, expected_last);
@@ -69,8 +85,9 @@ boost::test_tools::assertion_result run_and_compare(
 	std::variant<std::string, ach::highlighter_error> output = ach::run_highlighter(input_code, input_color, options);
 
 	if (auto ptr = std::get_if<ach::highlighter_error>(&output); ptr != nullptr) {
-		print_error(*ptr);
-		return false;
+		boost::test_tools::assertion_result test_result(false);
+		test_result.message() << *ptr;
+		return test_result;
 	}
 
 	BOOST_TEST_REQUIRE(std::holds_alternative<std::string>(output));
@@ -79,11 +96,90 @@ boost::test_tools::assertion_result run_and_compare(
 	if (actual_output == expected_output)
 		return true;
 
-	find_and_print_mismatched_line(expected_output, actual_output);
-	return false;
+	boost::test_tools::assertion_result test_result(false);
+	find_and_print_mismatched_line(expected_output, actual_output, test_result);
+	return test_result;
 }
 
-BOOST_AUTO_TEST_SUITE(highlighter_suite)
+void check_location(
+	char const* location_name,
+	ach::text_location expected,
+	ach::text_location actual,
+	boost::test_tools::assertion_result& test_result)
+{
+	if (expected.line_number() != actual.line_number()) {
+		test_result = false;
+		test_result.message() << location_name << ": line numbers differ, expected "
+			<< expected.line_number() << " but got " << actual.line_number() << "\n";
+	}
+
+	if (expected.line() != actual.line()) {
+		test_result = false;
+		test_result.message() << location_name << ": lines differ\n"
+			"EXPECTED (" << expected.line().size() << " characters):\n" << expected.line() << "\n"
+			"ACTUAL (" << actual.line().size() << " characters):\n" << actual.line() << "\n";
+	}
+
+	if (expected.first_column() != actual.first_column()) {
+		test_result = false;
+		test_result.message() << location_name << ": first column numbers differ, "
+			"expected " << expected.first_column() << " but got " << actual.first_column() << "\n";
+	}
+
+	if (expected.length() != actual.length()) {
+		test_result = false;
+		test_result.message() << location_name << ": lengths differ, "
+			"expected " << expected.length() << " but got " << actual.length() << "\n";
+	}
+}
+
+[[nodiscard]]
+boost::test_tools::assertion_result run_and_expect_error(
+	std::string_view input_code,
+	std::string_view input_color,
+	ach::highlighter_error expected_error,
+	ach::highlighter_options const& options = {})
+{
+	std::variant<std::string, ach::highlighter_error> output = ach::run_highlighter(input_code, input_color, options);
+
+	boost::test_tools::assertion_result test_result(true);
+
+	// we add extra endline before any messages because the initial boost message does not have one
+	// and it prints very long lines (includes source path and entire code under BOOST_TEST macro)
+	test_result.message() << "\n";
+
+	if (auto ptr = std::get_if<std::string>(&output); ptr != nullptr) {
+		test_result = false;
+		test_result.message() << "parse succeeded but should not\n"
+			"CODE:\n" << input_code << "\n"
+			"COLOR:\n" << input_color << "\n"
+			"RESULT:\n" << *ptr << "\n";
+		return test_result;
+	}
+
+	auto const actual_error = std::get<ach::highlighter_error>(output);
+
+	if (std::strcmp(expected_error.reason, actual_error.reason) != 0) {
+		test_result = false;
+		test_result.message() << "errors are different\n"
+			"EXPECTED: " << expected_error.reason << "\n"
+			"ACTUAL: " << actual_error.reason << "\n";
+	}
+
+	check_location("code", expected_error.code_location, actual_error.code_location, test_result);
+	check_location("color", expected_error.color_location, actual_error.color_location, test_result);
+
+	if (!test_result) {
+		test_result.message() << "EXPECTED ERROR:\n" << expected_error << "\n"
+			"ACTUAL ERROR:\n" << actual_error << "\n";
+	}
+
+	return test_result;
+}
+
+}
+
+BOOST_AUTO_TEST_SUITE(highlighter_positive)
 
 	BOOST_AUTO_TEST_CASE(empty_input)
 	{
@@ -214,7 +310,35 @@ BOOST_AUTO_TEST_SUITE(highlighter_suite)
 			"one1 two2 three3",
 			"key_word k_e_y_w_o_r_d _keyword_",
 			"<span class=\"key-word\">one1</span> <span class=\"k-e-y-w-o-r-d\">two2</span> <span class=\"-keyword-\">three3</span>",
-			ach::highlighter_options{ach::generation_options{true},{}}));
+			ach::highlighter_options{ach::generation_options{true}, {}}));
+	}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE(highlighter_negative)
+
+	BOOST_AUTO_TEST_CASE(exhausted_color)
+	{
+		BOOST_TEST(run_and_expect_error(
+			"sizeof...(Args) <= 123.0f",
+			"keyword...(tparam) <= num",
+			ach::highlighter_error{
+				ach::text_location(1, "keyword...(tparam) <= num", 25, 0),
+				ach::text_location(1, "sizeof...(Args) <= 123.0f", 22, 3),
+				ach::errors::exhausted_color
+			}));
+	}
+
+	BOOST_AUTO_TEST_CASE(expected_symbol)
+	{
+		BOOST_TEST(run_and_expect_error(
+			"abc xyz",
+			"val val val",
+			ach::highlighter_error{
+				ach::text_location(1, "val val val", 7, 1),
+				ach::text_location(1, "abc xyz", 7, 0),
+				ach::errors::expected_symbol
+			}));
 	}
 
 BOOST_AUTO_TEST_SUITE_END()

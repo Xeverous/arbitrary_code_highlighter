@@ -20,7 +20,7 @@ public:
 		return extractor.extract_digits();
 	}
 
-	text_location extract_n_characters(int n) {
+	text_location extract_n_characters(std::size_t n) {
 		return extractor.extract_n_characters(n);
 	}
 
@@ -34,6 +34,14 @@ public:
 
 	[[nodiscard]] bool has_reached_end() const noexcept { return extractor.has_reached_end(); }
 	text_location current_location() const noexcept { return extractor.current_location(); }
+
+	[[nodiscard]] bool load_next_line() {
+		return extractor.load_next_line();
+	}
+
+	text_location remaining_line_text() const noexcept {
+		return extractor.remaining_line_text();
+	}
 
 private:
 	text_extractor extractor;

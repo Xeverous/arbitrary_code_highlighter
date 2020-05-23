@@ -10,7 +10,7 @@ if(${CMAKE_VERSION} VERSION_LESS 3.12)
 endif()
 
 project(arbitrary_code_highlighter
-	VERSION 1.2.0
+	VERSION 1.3.0
 	DESCRIPTION "Embed arbitrary code in HTML <span> tags with CSS classes of your choice for rich syntax highlightning."
 	LANGUAGES CXX)
 
@@ -33,22 +33,25 @@ option(ACH_BUILD_PYTHON_MODULE
 	"build ACH Python extension module" ON)
 option(ACH_BUILD_TESTS
 	"build ACH tests" ON)
+option(ACH_ENABLE_LTO
+	"enable link-time optimization for ACH targets" ON)
 
 ##############################################################################
 # specify explicitly where to output all binary objects
 
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-include(CheckIPOSupported)
-check_ipo_supported(RESULT supported OUTPUT error)
+if(ACH_ENABLE_LTO)
+	include(CheckIPOSupported)
+	check_ipo_supported(RESULT IPO_SUPPORTED OUTPUT IPO_ERROR)
 
-if(supported)
-    message(STATUS "IPO / LTO supported, enabling")
-    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
-else()
-    message(STATUS "IPO / LTO not supported: <${error}>, will not enable")
+	if(IPO_SUPPORTED)
+		message(STATUS "IPO / LTO supported, enabling for ACH")
+	else()
+		message(FATAL_ERROR "IPO / LTO not supported: <${IPO_ERROR}>, will not enable")
+	endif()
 endif()
 
 ##############################################################################

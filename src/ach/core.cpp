@@ -1,4 +1,5 @@
 #include <ach/core.hpp>
+#include <ach/errors.hpp>
 #include <ach/utility/visitor.hpp>
 #include <ach/detail/code_tokenizer.hpp>
 #include <ach/detail/color_tokenizer.hpp>
@@ -13,91 +14,92 @@ namespace {
 using namespace ach;
 using namespace ach::detail;
 
-using result_t = std::variant<simple_span_element, quote_span_element, highlighter_error>;
+using result_t = std::variant<simple_span_element, quote_span_element, highlighter_error, end_of_input>;
 
 result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 {
 	return std::visit(utility::visitor{
 		[&](identifier_span id_span) -> result_t {
-			text_location const loc_code_id = code_tr.extract_identifier();
+			text_location const extracted_identifier = code_tr.extract_identifier();
 
-			if (loc_code_id.str().empty()) {
-				return highlighter_error{color_tn.origin, loc_code_id, "expected identifier"};
+			if (extracted_identifier.str().empty()) {
+				return highlighter_error{color_tn.origin, extracted_identifier, errors::expected_identifier};
 			}
 
-			return simple_span_element{html_text{loc_code_id.str()}, id_span.class_};
+			return simple_span_element{html_text{extracted_identifier.str()}, id_span.class_};
 		},
 		[&](fixed_length_span fl_span) -> result_t {
-			text_location const loc_fl_text = code_tr.extract_n_characters(fl_span.length);
-			auto const extracted_chars = static_cast<int>(loc_fl_text.str().size());
+			text_location const extracted_characters = code_tr.extract_n_characters(fl_span.length);
+			auto const extracted_chars = extracted_characters.str().size();
 			assert(extracted_chars <= fl_span.length);
 
 			if (extracted_chars < fl_span.length) {
-				return highlighter_error{color_tn.origin, loc_fl_text, "insufficient characters for fixed-length span"};
+				return highlighter_error{color_tn.origin, extracted_characters, errors::insufficient_characters};
 			}
 
-			return simple_span_element{html_text{loc_fl_text.str()}, fl_span.class_};
+			return simple_span_element{html_text{extracted_characters.str()}, fl_span.class_};
 		},
 		[&](line_delimited_span ld_span) -> result_t {
-			text_location const loc_ld_text = code_tr.extract_until_end_of_line();
-			return simple_span_element{html_text{loc_ld_text.str()}, ld_span.class_};
+			text_location const extracted_text = code_tr.extract_until_end_of_line();
+			// no if extracted_text.str().empty() here - we want to allow empty extractions
+			return simple_span_element{html_text{extracted_text.str()}, ld_span.class_};
 		},
 		[&](symbol s) -> result_t {
-			text_location const loc_symbol = code_tr.extract_n_characters(1);
+			text_location const extracted_symbol = code_tr.extract_n_characters(1);
 
-			if (loc_symbol.str().size() != 1u) {
-				return highlighter_error{color_tn.origin, loc_symbol, "failed to extract a symbol"};
+			if (extracted_symbol.str().empty()) {
+				return highlighter_error{color_tn.origin, extracted_symbol, errors::expected_symbol};
 			}
 
-			if (loc_symbol.str().front() != s.expected_symbol) {
-				return highlighter_error{color_tn.origin, loc_symbol, "symbols do not match"};
+			assert(extracted_symbol.str().size() == 1u);
+
+			if (extracted_symbol.str().front() != s.expected_symbol) {
+				return highlighter_error{color_tn.origin, extracted_symbol, errors::mismatched_symbol};
 			}
 
-			return simple_span_element{html_text{loc_symbol.str()}, std::nullopt};
+			return simple_span_element{html_text{extracted_symbol.str()}, std::nullopt};
 		},
 		[&](number num) -> result_t {
-			text_location const loc_num = code_tr.extract_digits();
+			text_location const extracted_digits = code_tr.extract_digits();
 
-			if (loc_num.str().empty()) {
-				return highlighter_error{color_tn.origin, loc_num, "expected number"};
+			if (extracted_digits.str().empty()) {
+				return highlighter_error{color_tn.origin, extracted_digits, errors::expected_number};
 			}
 
-			return simple_span_element{html_text{loc_num.str()}, num.class_};
+			return simple_span_element{html_text{extracted_digits.str()}, num.class_};
 		},
 		[&](empty_token) -> result_t {
 			return simple_span_element{html_text{}, std::nullopt};
 		},
 		[&](quoted_span span) -> result_t {
-			text_location const loc = code_tr.extract_quoted(span.delimeter, span.escape);
+			text_location const extracted_text = code_tr.extract_quoted(span.delimeter, span.escape);
 
-			if (loc.str().empty()) {
-				return highlighter_error{color_tn.origin, loc, "failed to parse quoted text"};
+			if (extracted_text.str().empty()) {
+				return highlighter_error{color_tn.origin, extracted_text, errors::expected_quoted};
 			}
 
-			return quote_span_element{html_text{loc.str()}, span.primary_class, span.escape_class, span.escape};
+			return quote_span_element{html_text{extracted_text.str()}, span.primary_class, span.escape_class, span.escape};
 		},
 		[&](end_of_line) -> result_t {
-			text_location const loc_eol = code_tr.extract_n_characters(1);
+			text_location const extracted_char = code_tr.extract_n_characters(1);
 
-			if (loc_eol.str().size() != 1u) {
-				return highlighter_error{color_tn.origin, loc_eol, "failed to extract line feed"};
+			if (extracted_char.str().empty()) {
+				return highlighter_error{color_tn.origin, extracted_char, errors::expected_line_feed};
 			}
 
-			if (loc_eol.str().front() != '\n') {
-				return highlighter_error{color_tn.origin, loc_eol, "expected line feed character"};
+			assert(extracted_char.str().size() == 1u);
+
+			if (extracted_char.str().front() != '\n') {
+				return highlighter_error{color_tn.origin, extracted_char, errors::expected_line_feed};
 			}
 
-			return simple_span_element{html_text{loc_eol.str()}, std::nullopt};
+			// ignore if no more lines are present
+			(void) code_tr.load_next_line();
+
+			return simple_span_element{html_text{extracted_char.str()}, std::nullopt};
 		},
-		[&](end_of_input) -> result_t {
-			if (code_tr.has_reached_end())  {
-				return simple_span_element{html_text{""}, std::nullopt};
-			}
-
-			return highlighter_error{
-				color_tn.origin,
-				code_tr.current_location(),
-				"reached color input end, but some code remains"};
+		[](end_of_input eoi) -> result_t {
+			return eoi;
 		},
 		[&](invalid_token invalid) -> result_t {
 			return highlighter_error{color_tn.origin, code_tr.current_location(), invalid.reason};
@@ -118,7 +120,8 @@ std::variant<std::string, highlighter_error> run_highlighter(
 	code_tokenizer code_tr(code);
 	html_builder builder;
 
-	while (!color_tr.has_reached_end()) {
+	bool done = false;
+	while (!done) {
 		result_t result = process_color_token(color_tr.next_token(options.color), code_tr);
 
 		auto maybe_error = std::visit(utility::visitor{
@@ -128,14 +131,26 @@ std::variant<std::string, highlighter_error> run_highlighter(
 			[&](auto span) -> std::optional<highlighter_error> {
 				builder.add_span(span, options.generation.replace_underscores_to_hyphens);
 				return std::nullopt;
+			},
+			[&](end_of_input) -> std::optional<highlighter_error> {
+				done = true; // exit the loop when color input ends
+				return std::nullopt;
 			}
-		}, result);
+		}, std::move(result));
 
 		if (maybe_error)
 			return *maybe_error;
 	}
 
-	assert(code_tr.has_reached_end());
+	if (!code_tr.has_reached_end()) {
+		// underline remaining code
+		return highlighter_error{
+			color_tr.current_location(),
+			code_tr.remaining_line_text(),
+			errors::exhausted_color
+		};
+	}
+
 	return std::move(builder.str());
 }
 
