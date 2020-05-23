@@ -9,37 +9,6 @@
 #include <cstring>
 #include <algorithm>
 
-namespace ach {
-
-std::ostream& operator<<(std::ostream& os, ach::text_location tl)
-{
-	os << "line " << tl.line_number() << ":\n" << tl.line() << '\n';
-
-	for (auto i = 0u; i < tl.first_column(); ++i)
-		os << ' ';
-
-	auto const highlight_length = tl.str().size();
-
-	if (highlight_length == 0) {
-		os << '^';
-	}
-	else {
-		for (auto i = 0u; i < highlight_length; ++i)
-			os << '~';
-	}
-
-	return os << '\n';
-}
-
-std::ostream& operator<<(std::ostream& os, ach::highlighter_error const& error)
-{
-	return os << error.reason
-		<< "\nin code " << error.code_location
-		<< "in color " << error.color_location;
-}
-
-}
-
 namespace {
 
 void find_and_print_mismatched_line(

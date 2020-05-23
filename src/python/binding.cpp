@@ -17,22 +17,7 @@ namespace {
 std::string to_string(ach::highlighter_error const& error)
 {
 	std::stringstream ss;
-
-	auto const append = [&ss](ach::text_location tl) {
-		ss << "line " << tl.line_number() << ":\n" << tl.line() << '\n';
-
-		for (auto i = 0; i < tl.first_column(); ++i)
-			ss << ' ';
-
-		for (auto i = 0u; i < std::max<std::size_t>(1u, tl.str().size()); ++i)
-			ss << '~';
-
-		ss << '\n';
-	};
-	ss << error.reason << "\nin code ";
-	append(error.code_location);
-	ss << "in color ";
-	append(error.color_location);
+	ss << error;
 	return ss.str();
 }
 

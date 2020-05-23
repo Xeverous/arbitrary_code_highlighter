@@ -6,6 +6,7 @@
 #include <string>
 #include <string_view>
 #include <variant>
+#include <iosfwd>
 
 namespace ach {
 
@@ -31,5 +32,8 @@ std::variant<std::string, highlighter_error> run_highlighter(
 	std::string_view code,
 	std::string_view color,
 	highlighter_options const& options = {});
+
+std::ostream& operator<<(std::ostream& os, ach::text_location tl);
+std::ostream& operator<<(std::ostream& os, ach::highlighter_error const& error);
 
 }
