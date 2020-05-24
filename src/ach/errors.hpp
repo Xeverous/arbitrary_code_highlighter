@@ -15,5 +15,6 @@ namespace ach::errors {
 
 	// errors against color
 	constexpr auto expected_span_class = "expected span class name";
+	constexpr auto invalid_css_class = "invalid CSS class";
 
 }

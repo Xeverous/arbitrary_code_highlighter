@@ -30,6 +30,7 @@ py::str run_highlighter(
 	std::string_view chr_class, std::string_view chr_esc_class,
 	std::string_view escape_char, std::string_view empty_token_char,
 	std::string_view table_wrap_css_class,
+	std::string_view valid_css_classes,
 	bool replace_underscores_to_hyphens)
 {
 	if (escape_char.size() != 1u) {
@@ -46,7 +47,8 @@ py::str run_highlighter(
 		ach::highlighter_options{
 			ach::generation_options{
 				replace_underscores_to_hyphens,
-				table_wrap_css_class
+				table_wrap_css_class,
+				valid_css_classes
 			},
 			ach::color_options{
 				num_class,
@@ -81,6 +83,7 @@ PYBIND11_MODULE(pyach, m) {
 		py::arg("escape_char")      = ach::color_options::default_escape_char,
 		py::arg("empty_token_char") = ach::color_options::default_empty_token_char,
 		py::arg("table_wrap_css_class") = "",
+		py::arg("valid_css_classes")    = "",
 		py::arg("replace") = false);
 
 	m.def("version", []() {

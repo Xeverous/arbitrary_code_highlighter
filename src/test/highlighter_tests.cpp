@@ -6,7 +6,6 @@
 
 #include <string_view>
 #include <ostream>
-#include <cstring>
 #include <algorithm>
 
 namespace {
@@ -128,7 +127,7 @@ boost::test_tools::assertion_result run_and_expect_error(
 
 	auto const actual_error = std::get<ach::highlighter_error>(output);
 
-	if (std::strcmp(expected_error.reason, actual_error.reason) != 0) {
+	if (expected_error.reason != actual_error.reason) {
 		test_result = false;
 		test_result.message() << "errors are different\n"
 			"EXPECTED: " << expected_error.reason << "\n"

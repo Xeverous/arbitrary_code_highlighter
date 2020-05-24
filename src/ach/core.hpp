@@ -14,6 +14,7 @@ struct generation_options
 {
 	bool replace_underscores_to_hyphens = false;
 	std::string_view table_wrap_css_class = {};
+	std::string_view valid_css_classes = {};
 };
 
 struct highlighter_options
@@ -26,7 +27,8 @@ struct highlighter_error
 {
 	text_location color_location;
 	text_location code_location;
-	const char* reason;
+	std::string_view reason; // should be initialized
+	std::string_view extra_reason = {};
 };
 
 std::variant<std::string, highlighter_error> run_highlighter(

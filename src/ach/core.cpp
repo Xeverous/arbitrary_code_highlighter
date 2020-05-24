@@ -10,6 +10,8 @@
 #include <variant>
 #include <utility>
 #include <ostream>
+#include <algorithm>
+#include <functional>
 
 namespace {
 
@@ -109,6 +111,35 @@ result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 	}, color_tn.token);
 }
 
+using invalid_class_t = std::optional<css_class>;
+
+invalid_class_t check_class(css_class class_, std::string_view valid_classes)
+{
+	auto const it = std::search(
+		valid_classes.begin(),
+		valid_classes.end(),
+		std::default_searcher(class_.name.begin(), class_.name.end()));
+
+	if (it == valid_classes.end())
+		return class_;
+	else
+		return std::nullopt;
+}
+
+invalid_class_t check_css_classes(simple_span_element el, std::string_view valid_classes)
+{
+	return check_class(*el.class_, valid_classes);
+}
+
+invalid_class_t check_css_classes(quote_span_element el, std::string_view valid_classes)
+{
+	invalid_class_t maybe_error = check_class(el.primary_class, valid_classes);
+	if (maybe_error)
+		return maybe_error;
+
+	return check_class(el.escape_class, valid_classes);
+}
+
 }
 
 namespace ach {
@@ -131,13 +162,26 @@ std::variant<std::string, highlighter_error> run_highlighter(
 
 	bool done = false;
 	while (!done) {
-		result_t result = process_color_token(color_tr.next_token(options.color), code_tr);
+		color_token color_tn = color_tr.next_token(options.color);
+		result_t result = process_color_token(color_tn, code_tr);
 
 		auto maybe_error = std::visit(utility::visitor{
 			[](highlighter_error error) -> std::optional<highlighter_error> {
 				return error;
 			},
 			[&](auto span) -> std::optional<highlighter_error> {
+				if (!options.generation.valid_css_classes.empty()) {
+					invalid_class_t maybe_error = check_css_classes(
+						span, options.generation.valid_css_classes);
+
+					if (maybe_error)
+						return highlighter_error{
+							color_tn.origin,
+							code_tr.current_location(),
+							errors::invalid_css_class,
+							(*maybe_error).name};
+				}
+
 				builder.add_span(span, options.generation.replace_underscores_to_hyphens);
 				return std::nullopt;
 			},
@@ -198,9 +242,12 @@ std::ostream& operator<<(std::ostream& os, ach::text_location tl)
 
 std::ostream& operator<<(std::ostream& os, ach::highlighter_error const& error)
 {
-	return os << error.reason
-		<< "\nin code " << error.code_location
-		<< "in color " << error.color_location;
+	os << error.reason;
+
+	if (!error.extra_reason.empty())
+		os << ": " << error.extra_reason;
+
+	return os << "\nin code " << error.code_location << "in color " << error.color_location;
 }
 
 }
