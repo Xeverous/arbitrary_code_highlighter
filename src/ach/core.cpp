@@ -157,7 +157,10 @@ std::variant<std::string, highlighter_error> run_highlighter(
 
 std::ostream& operator<<(std::ostream& os, ach::text_location tl)
 {
-	os << "line " << tl.line_number() << ":\n" << tl.line() << '\n';
+	os << "line " << tl.line_number() << ":\n" << tl.line();
+
+	if (tl.line().empty() || tl.line().back() != '\n')
+		os << '\n';
 
 	for (auto i = 0u; i < tl.first_column(); ++i)
 		os << ' ';

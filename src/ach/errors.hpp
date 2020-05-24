@@ -2,6 +2,7 @@
 
 namespace ach::errors {
 
+	// errors against code
 	constexpr auto expected_identifier = "expected identifier";
 	constexpr auto expected_symbol = "expected symbol";
 	constexpr auto expected_number = "expected number";
@@ -11,5 +12,8 @@ namespace ach::errors {
 	constexpr auto invalid_number = "invalid number";
 	constexpr auto insufficient_characters = "insufficient characters for fixed-length span";
 	constexpr auto exhausted_color = "color input exhausted but code remains";
+
+	// errors against color
+	constexpr auto expected_span_class = "expected span class name";
 
 }

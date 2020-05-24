@@ -187,6 +187,38 @@ BOOST_AUTO_TEST_SUITE(highlighter_positive)
 			"<span class=\"first\">one</span> + <span class=\"second\">two</span> % <span class=\"third\">three</span>"));
 	}
 
+	BOOST_AUTO_TEST_CASE(line_delimited_empty_input)
+	{
+		BOOST_TEST(run_and_compare(
+			"",
+			"0com",
+			"<span class=\"com\"></span>"));
+	}
+
+	BOOST_AUTO_TEST_CASE(line_delimited_empty_remaining)
+	{
+		BOOST_TEST(run_and_compare(
+			"xyz",
+			"val0com",
+			"<span class=\"val\">xyz</span><span class=\"com\"></span>"));
+	}
+
+	BOOST_AUTO_TEST_CASE(line_delimited_word)
+	{
+		BOOST_TEST(run_and_compare(
+			"xd",
+			"0com",
+			"<span class=\"com\">xd</span>"));
+	}
+
+	BOOST_AUTO_TEST_CASE(line_delimited_word_symbol)
+	{
+		BOOST_TEST(run_and_compare(
+			"xd ",
+			"0com",
+			"<span class=\"com\">xd </span>"));
+	}
+
 	BOOST_AUTO_TEST_CASE(line_delimited_span)
 	{
 		BOOST_TEST(run_and_compare(
@@ -298,7 +330,7 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 			}));
 	}
 
-	BOOST_AUTO_TEST_CASE(expected_symbol)
+	BOOST_AUTO_TEST_CASE(expected_symbol_missing)
 	{
 		BOOST_TEST(run_and_expect_error(
 			"abc xyz",
@@ -307,6 +339,162 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 				ach::text_location(1, "val val val", 7, 1),
 				ach::text_location(1, "abc xyz", 7, 0),
 				ach::errors::expected_symbol
+			}));
+	}
+
+	BOOST_AUTO_TEST_CASE(expected_symbol_duplicated)
+	{
+		BOOST_TEST(run_and_expect_error(
+			"@ # $",
+			"@ # $$",
+			ach::highlighter_error{
+				ach::text_location(1, "@ # $$", 5, 1),
+				ach::text_location(1, "@ # $", 5, 0),
+				ach::errors::expected_symbol
+			}));
+	}
+
+	BOOST_AUTO_TEST_CASE(mismatched_symbol)
+	{
+		BOOST_TEST(run_and_expect_error(
+			"@ # $",
+			"@ # ?",
+			ach::highlighter_error{
+				ach::text_location(1, "@ # ?", 4, 1),
+				ach::text_location(1, "@ # $", 4, 1),
+				ach::errors::mismatched_symbol
+			}));
+	}
+
+	BOOST_AUTO_TEST_CASE(expected_identifier_empty)
+	{
+		BOOST_TEST(run_and_expect_error(
+			"abc xyz ",
+			"val val val",
+			ach::highlighter_error{
+				ach::text_location(1, "val val val", 8, 3),
+				ach::text_location(1, "abc xyz ", 8, 0),
+				ach::errors::expected_identifier
+			}));
+	}
+
+	BOOST_AUTO_TEST_CASE(expected_identifier_got_number)
+	{
+		BOOST_TEST(run_and_expect_error(
+			"abc xyz 123",
+			"val val val",
+			ach::highlighter_error{
+				ach::text_location(1, "val val val", 8, 3),
+				ach::text_location(1, "abc xyz 123", 8, 0),
+				ach::errors::expected_identifier
+			}));
+	}
+
+	BOOST_AUTO_TEST_CASE(expected_number_empty)
+	{
+		BOOST_TEST(run_and_expect_error(
+			"123 456 ",
+			"num num num",
+			ach::highlighter_error{
+				ach::text_location(1, "num num num", 8, 3),
+				ach::text_location(1, "123 456 ", 8, 0),
+				ach::errors::expected_number
+			}));
+	}
+
+	BOOST_AUTO_TEST_CASE(expected_number_got_identifier)
+	{
+		BOOST_TEST(run_and_expect_error(
+			"123 456 abc",
+			"num num num",
+			ach::highlighter_error{
+				ach::text_location(1, "num num num", 8, 3),
+				ach::text_location(1, "123 456 abc", 8, 0),
+				ach::errors::expected_number
+			}));
+	}
+
+	BOOST_AUTO_TEST_CASE(expected_line_feed_empty)
+	{
+		BOOST_TEST(run_and_expect_error(
+			"abc",
+			"val\nval",
+			ach::highlighter_error{
+				ach::text_location(1, "val\n", 3, 1),
+				ach::text_location(1, "abc", 3, 0),
+				ach::errors::expected_line_feed
+			}));
+	}
+
+	BOOST_AUTO_TEST_CASE(expected_line_feed_got_symbol)
+	{
+		BOOST_TEST(run_and_expect_error(
+			"abc@",
+			"val\nval",
+			ach::highlighter_error{
+				ach::text_location(1, "val\n", 3, 1),
+				ach::text_location(1, "abc@", 3, 1),
+				ach::errors::expected_line_feed
+			}));
+	}
+
+	BOOST_AUTO_TEST_CASE(insufficient_characters)
+	{
+		BOOST_TEST(run_and_expect_error(
+			"abc xyz\nfoo bar", // extra line of code to make sure remaining characters are checked per line
+			"val 5val",
+			ach::highlighter_error{
+				ach::text_location(1, "val 5val", 4, 4),
+				ach::text_location(1, "abc xyz\n", 4, 0),
+				ach::errors::insufficient_characters
+			}));
+	}
+
+	BOOST_AUTO_TEST_CASE(invalid_number)
+	{
+		BOOST_TEST(run_and_expect_error(
+			"abc xyz\nfoo bar",
+			"val 123456789012345678901234567890val",
+			ach::highlighter_error{
+				ach::text_location(1, "val 123456789012345678901234567890val", 4, 30),
+				ach::text_location(1, "abc xyz\n", 4, 0),
+				ach::errors::invalid_number
+			}));
+	}
+
+	BOOST_AUTO_TEST_CASE(expected_quoted_missing_end)
+	{
+		BOOST_TEST(run_and_expect_error(
+			"xyz + 'a\tb\bc",
+			"val + chr",
+			ach::highlighter_error{
+				ach::text_location(1, "val + chr", 6, 3),
+				ach::text_location(1, "xyz + 'a\tb\bc", 6, 0),
+				ach::errors::expected_quoted
+			}));
+	}
+
+	BOOST_AUTO_TEST_CASE(expected_span_class_empty)
+	{
+		BOOST_TEST(run_and_expect_error(
+			"@ # $",
+			"@ # $0",
+			ach::highlighter_error{
+				ach::text_location(1, "@ # $0", 5, 1),
+				ach::text_location(1, "@ # $", 5, 0),
+				ach::errors::expected_span_class
+			}));
+	}
+
+	BOOST_AUTO_TEST_CASE(expected_span_class_got_symbol)
+	{
+		BOOST_TEST(run_and_expect_error(
+			"@ # $",
+			"@ # $0!",
+			ach::highlighter_error{
+				ach::text_location(1, "@ # $0!", 5, 1),
+				ach::text_location(1, "@ # $", 5, 0),
+				ach::errors::expected_span_class
 			}));
 	}
 

@@ -47,6 +47,10 @@ text_location text_extractor::extract_by(Predicate pred)
 
 text_location text_extractor::extract_identifier()
 {
+	std::optional<char> c = peek_next_char();
+	if (!c || detail::is_digit(*c))
+		return current_location();
+
 	return extract_by(detail::is_alnum_or_underscore);
 }
 

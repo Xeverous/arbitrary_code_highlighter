@@ -48,7 +48,11 @@ color_token color_tokenizer::next_token(color_options options)
 		auto const num_str = extracted_digits.str();
 		std::size_t num = 0;
 		if (std::from_chars(num_str.data(), num_str.data() + num_str.size(), num).ec != std::errc()) {
-			return color_token{invalid_token{ errors::invalid_number }, extracted_digits};
+			return color_token{invalid_token{errors::invalid_number}, extracted_digits};
+		}
+
+		if (extracted_name.str().empty()) {
+			return color_token{invalid_token{errors::expected_span_class}, extracted_digits};
 		}
 
 		if (num == 0) {
