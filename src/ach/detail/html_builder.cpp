@@ -3,6 +3,27 @@
 
 namespace ach::detail {
 
+void html_builder::open_table(std::size_t lines, std::string_view code_class)
+{
+	result +=
+		"<table class=\"codetable\">"
+		"<tbody><tr><td class=\"linenos\"><div class=\"linenodiv\"><pre>";
+
+	for (std::size_t i = 1; i <= lines; ++i) {
+		result.append(std::to_string(i));
+		result += "\n";
+	}
+
+	result += "</pre></div></td><td class=\"code\"><pre class=\"code ";
+	result += code_class;
+	result += "\">";
+}
+
+void html_builder::close_table()
+{
+	result += "</pre></td></tr></tbody></table>";
+}
+
 void html_builder::add_span(simple_span_element span, bool replace_underscores_to_hyphens)
 {
 	if (!span.class_) {

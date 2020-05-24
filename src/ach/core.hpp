@@ -13,6 +13,7 @@ namespace ach {
 struct generation_options
 {
 	bool replace_underscores_to_hyphens = false;
+	std::string_view table_wrap_css_class = {};
 };
 
 struct highlighter_options

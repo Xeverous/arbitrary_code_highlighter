@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string_view>
+
 namespace ach::detail {
 
 constexpr bool is_digit(char c) noexcept
@@ -25,6 +27,22 @@ constexpr bool is_alpha_or_underscore(char c) noexcept
 constexpr bool is_alnum_or_underscore(char c) noexcept
 {
 	return is_alnum(c) || c == '_';
+}
+
+constexpr std::size_t count_lines(std::string_view str) noexcept
+{
+	if (str.empty())
+		return 0;
+
+	std::size_t result = 1;
+	for (char c : str)
+		if (c == '\n')
+			++result;
+
+	if (str.back() == '\n')
+		--result;
+
+	return result;
 }
 
 }

@@ -4,6 +4,7 @@
 #include <ach/detail/code_tokenizer.hpp>
 #include <ach/detail/color_tokenizer.hpp>
 #include <ach/detail/html_builder.hpp>
+#include <ach/detail/text_utils.hpp>
 
 #include <cassert>
 #include <variant>
@@ -117,9 +118,16 @@ std::variant<std::string, highlighter_error> run_highlighter(
 	std::string_view color,
 	highlighter_options const& options)
 {
+	bool const wrap_in_table = !options.generation.table_wrap_css_class.empty();
+	const auto num_lines = detail::count_lines(code);
+	html_builder builder;
+	// TODO use builder.reserve()
+	if (wrap_in_table) {
+		builder.open_table(num_lines, options.generation.table_wrap_css_class);
+	}
+
 	color_tokenizer color_tr(color);
 	code_tokenizer code_tr(code);
-	html_builder builder;
 
 	bool done = false;
 	while (!done) {
@@ -151,6 +159,9 @@ std::variant<std::string, highlighter_error> run_highlighter(
 			errors::exhausted_color
 		};
 	}
+
+	if (wrap_in_table)
+		builder.close_table();
 
 	return std::move(builder.str());
 }

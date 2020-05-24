@@ -16,6 +16,9 @@ public:
 	void add_span(simple_span_element span, bool replace_underscores_to_hyphens = false);
 	void add_span(quote_span_element span, bool replace_underscores_to_hyphens = false);
 
+	void open_table(std::size_t lines, std::string_view code_class);
+	void close_table();
+
 	std::string& str() noexcept { return result; }
 	std::string const& str() const noexcept { return result; }
 
