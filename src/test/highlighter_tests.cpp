@@ -170,6 +170,14 @@ BOOST_AUTO_TEST_SUITE(highlighter_positive)
 			"<span class=\"keyword\">one</span> + <span class=\"keyword\">two</span> % <span class=\"keyword\">three</span>"));
 	}
 
+	BOOST_AUTO_TEST_CASE(fixed_length_no_css_class)
+	{
+		BOOST_TEST(run_and_compare(
+			"onetwothree",
+			"3first3`5third",
+			"<span class=\"first\">one</span>two<span class=\"third\">three</span>"));
+	}
+
 	BOOST_AUTO_TEST_CASE(fixed_length_span)
 	{
 		BOOST_TEST(run_and_compare(
@@ -216,6 +224,14 @@ BOOST_AUTO_TEST_SUITE(highlighter_positive)
 			"xd ",
 			"0com",
 			"<span class=\"com\">xd </span>"));
+	}
+
+	BOOST_AUTO_TEST_CASE(line_delimited_no_css_class)
+	{
+		BOOST_TEST(run_and_compare(
+			"abc xyz",
+			"val 0`",
+			"<span class=\"val\">abc</span> xyz"));
 	}
 
 	BOOST_AUTO_TEST_CASE(line_delimited_span)

@@ -43,7 +43,7 @@ color_token color_tokenizer::next_token(color_options options)
 	}
 	else if (is_digit(next_char)) {
 		text_location const extracted_digits = extractor.extract_digits();
-		text_location const extracted_name = extractor.extract_alphas_underscores();
+		text_location extracted_name = extractor.extract_alphas_underscores();
 
 		auto const num_str = extracted_digits.str();
 		std::size_t num = 0;
@@ -51,18 +51,26 @@ color_token color_tokenizer::next_token(color_options options)
 			return color_token{invalid_token{errors::invalid_number}, extracted_digits};
 		}
 
+		std::optional<css_class> class_ = css_class{extracted_name.str()};
 		if (extracted_name.str().empty()) {
-			return color_token{invalid_token{errors::expected_span_class}, extracted_digits};
+			std::optional<char> c = extractor.peek_next_char();
+			if (c == options.empty_token_char) {
+				extracted_name = extractor.extract_n_characters(1);
+				class_ = std::nullopt;
+			}
+			else {
+				return color_token{invalid_token{errors::expected_span_class}, extracted_digits};
+			}
 		}
 
 		if (num == 0) {
 			return color_token{
-				line_delimited_span{extracted_name.str()},
+				line_delimited_span{class_},
 				text_location::merge(extracted_digits, extracted_name)};
 		}
 
 		return color_token{
-			fixed_length_span{extracted_name.str(), num, extracted_name, extracted_digits},
+			fixed_length_span{class_, num, extracted_name, extracted_digits},
 			text_location::merge(extracted_digits, extracted_name)};
 	}
 	else if (next_char == '\n') {

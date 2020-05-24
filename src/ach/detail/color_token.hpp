@@ -4,6 +4,7 @@
 #include <ach/detail/html_types.hpp>
 
 #include <variant>
+#include <optional>
 
 namespace ach::detail {
 
@@ -14,7 +15,7 @@ struct identifier_span
 
 struct fixed_length_span
 {
-	css_class class_;
+	std::optional<css_class> class_;
 	std::size_t length;
 	text_location name_origin;
 	text_location length_origin;
@@ -22,7 +23,7 @@ struct fixed_length_span
 
 struct line_delimited_span
 {
-	css_class class_;
+	std::optional<css_class> class_;
 };
 
 struct number
