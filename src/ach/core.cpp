@@ -162,8 +162,15 @@ std::ostream& operator<<(std::ostream& os, ach::text_location tl)
 	if (tl.line().empty() || tl.line().back() != '\n')
 		os << '\n';
 
-	for (auto i = 0u; i < tl.first_column(); ++i)
-		os << ' ';
+	assert(tl.first_column() < tl.line().size());
+
+	// match the whitespace character used - tabs have different length
+	for (auto i = 0u; i < tl.first_column(); ++i) {
+		if (tl.line()[i] == '\t')
+			os << '\t';
+		else
+			os << ' ';
+	}
 
 	auto const highlight_length = tl.str().size();
 
