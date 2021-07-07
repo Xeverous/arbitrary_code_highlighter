@@ -1,10 +1,10 @@
 #pragma once
 
-#include <ach/text_extractor.hpp>
+#include <ach/common/text_extractor.hpp>
 
 #include <string_view>
 
-namespace ach::detail {
+namespace ach::cc::detail {
 
 class code_tokenizer
 {

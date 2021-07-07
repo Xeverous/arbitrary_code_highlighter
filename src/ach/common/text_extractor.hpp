@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ach/text_location.hpp>
+#include <ach/common/text_location.hpp>
 
 #include <string_view>
 #include <optional>
@@ -21,15 +21,18 @@ public:
 	std::optional<char> peek_next_char() const noexcept {
 		auto const remaining = remaining_line_str();
 
-		if (remaining.empty()) {
+		if (remaining.empty())
 			return std::nullopt;
-		}
 
 		return remaining.front();
 	}
 
+	[[nodiscard]] bool has_reached_line_end() const noexcept {
+		return _column_number == _current_line.size();
+	}
+
 	[[nodiscard]] bool has_reached_end() const noexcept {
-		return _remaining_text.empty() && remaining_line_str().empty();
+		return _remaining_text.empty() && has_reached_line_end();
 	}
 
 	text_location remaining_line_text() const noexcept {

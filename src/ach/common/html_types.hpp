@@ -3,7 +3,7 @@
 #include <string_view>
 #include <optional>
 
-namespace ach::detail {
+namespace ach {
 
 struct html_text
 {

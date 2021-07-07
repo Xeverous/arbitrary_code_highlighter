@@ -1,21 +1,15 @@
 #pragma once
 
-#include <ach/text_location.hpp>
-#include <ach/color_options.hpp>
+#include <ach/common/text_location.hpp>
+#include <ach/common/options.hpp>
+#include <ach/cc/color_options.hpp>
 
 #include <string>
 #include <string_view>
 #include <variant>
 #include <iosfwd>
 
-namespace ach {
-
-struct generation_options
-{
-	bool replace_underscores_to_hyphens = false;
-	std::string_view table_wrap_css_class = {};
-	std::string_view valid_css_classes = {};
-};
+namespace ach::cc {
 
 struct highlighter_options
 {
@@ -36,7 +30,6 @@ std::variant<std::string, highlighter_error> run_highlighter(
 	std::string_view color,
 	highlighter_options const& options = {});
 
-std::ostream& operator<<(std::ostream& os, ach::text_location tl);
-std::ostream& operator<<(std::ostream& os, ach::highlighter_error const& error);
+std::ostream& operator<<(std::ostream& os, highlighter_error const& error);
 
 }

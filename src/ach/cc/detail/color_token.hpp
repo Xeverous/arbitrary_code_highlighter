@@ -1,12 +1,12 @@
 #pragma once
 
-#include <ach/text_location.hpp>
-#include <ach/detail/html_types.hpp>
+#include <ach/common/text_location.hpp>
+#include <ach/common/html_types.hpp>
 
 #include <variant>
 #include <optional>
 
-namespace ach::detail {
+namespace ach::cc::detail {
 
 struct identifier_span
 {

@@ -2,6 +2,7 @@
 
 #include <string_view>
 #include <cassert>
+#include <iosfwd>
 
 namespace ach {
 
@@ -38,5 +39,7 @@ private:
 	std::size_t _first_column = 0;
 	std::size_t _length = 0;
 };
+
+std::ostream& operator<<(std::ostream& os, text_location tl);
 
 }

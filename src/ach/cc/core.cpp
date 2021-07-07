@@ -1,10 +1,10 @@
-#include <ach/core.hpp>
-#include <ach/errors.hpp>
+#include <ach/cc/core.hpp>
+#include <ach/cc/errors.hpp>
+#include <ach/cc/detail/code_tokenizer.hpp>
+#include <ach/cc/detail/color_tokenizer.hpp>
+#include <ach/common/html_builder.hpp>
 #include <ach/utility/visitor.hpp>
-#include <ach/detail/code_tokenizer.hpp>
-#include <ach/detail/color_tokenizer.hpp>
-#include <ach/detail/html_builder.hpp>
-#include <ach/detail/text_utils.hpp>
+#include <ach/utility/text.hpp>
 
 #include <cassert>
 #include <variant>
@@ -16,7 +16,8 @@
 namespace {
 
 using namespace ach;
-using namespace ach::detail;
+using namespace ach::cc;
+using namespace ach::cc::detail;
 
 using result_t = std::variant<simple_span_element, quote_span_element, highlighter_error, end_of_input>;
 
@@ -142,7 +143,7 @@ invalid_class_t check_css_classes(quote_span_element el, std::string_view valid_
 
 }
 
-namespace ach {
+namespace ach::cc {
 
 std::variant<std::string, highlighter_error> run_highlighter(
 	std::string_view code,
@@ -150,7 +151,7 @@ std::variant<std::string, highlighter_error> run_highlighter(
 	highlighter_options const& options)
 {
 	bool const wrap_in_table = !options.generation.table_wrap_css_class.empty();
-	auto const num_lines = detail::count_lines(code);
+	auto const num_lines = utility::count_lines(code);
 	html_builder builder;
 	// TODO use builder.reserve()
 	if (wrap_in_table) {
@@ -208,36 +209,6 @@ std::variant<std::string, highlighter_error> run_highlighter(
 		builder.close_table();
 
 	return std::move(builder.str());
-}
-
-std::ostream& operator<<(std::ostream& os, text_location tl)
-{
-	os << "line " << tl.line_number() << ":\n" << tl.line();
-
-	if (tl.line().empty() || tl.line().back() != '\n')
-		os << '\n';
-
-	assert(tl.first_column() < tl.line().size());
-
-	// match the whitespace character used - tabs have different length
-	for (auto i = 0u; i < tl.first_column(); ++i) {
-		if (tl.line()[i] == '\t')
-			os << '\t';
-		else
-			os << ' ';
-	}
-
-	auto const highlight_length = tl.str().size();
-
-	if (highlight_length == 0) {
-		os << '^';
-	}
-	else {
-		for (auto i = 0u; i < highlight_length; ++i)
-			os << '~';
-	}
-
-	return os << '\n';
 }
 
 std::ostream& operator<<(std::ostream& os, highlighter_error const& error)

@@ -1,6 +1,6 @@
 #include <ach/version.hpp>
-#include <ach/color_options.hpp>
-#include <ach/core.hpp>
+#include <ach/cc/color_options.hpp>
+#include <ach/cc/core.hpp>
 #include <ach/utility/visitor.hpp>
 
 #include <pybind11/pybind11.h>
@@ -14,7 +14,7 @@ namespace py = pybind11;
 
 namespace {
 
-std::string to_string(ach::highlighter_error const& error)
+std::string to_string(ach::cc::highlighter_error const& error)
 {
 	std::stringstream ss;
 	ss << error;
@@ -41,16 +41,16 @@ py::str run_highlighter(
 		throw py::value_error("argument 'empty_token_char' should be 1 character");
 	}
 
-	auto const result = ach::run_highlighter(
+	auto const result = ach::cc::run_highlighter(
 		code,
 		color,
-		ach::highlighter_options{
+		ach::cc::highlighter_options{
 			ach::generation_options{
 				replace_underscores_to_hyphens,
 				table_wrap_css_class,
 				valid_css_classes
 			},
-			ach::color_options{
+			ach::cc::color_options{
 				num_class,
 				str_class, str_esc_class,
 				chr_class, chr_esc_class,
@@ -63,7 +63,7 @@ py::str run_highlighter(
 		[](std::string const& output) {
 			return py::str(output);
 		},
-		[](ach::highlighter_error error) -> py::str {
+		[](ach::cc::highlighter_error error) -> py::str {
 			throw std::runtime_error(to_string(error));
 		}
 	}, result);
@@ -75,13 +75,13 @@ PYBIND11_MODULE(pyach, m) {
 	m.doc() = ach::program_description;
 
 	m.def("run_highlighter", &run_highlighter, py::arg("code").none(false), py::arg("color").none(false),
-		py::arg("num_class")        = ach::color_options::default_num_class,
-		py::arg("str_class")        = ach::color_options::default_str_class,
-		py::arg("str_esc_class")    = ach::color_options::default_str_esc_class,
-		py::arg("chr_class")        = ach::color_options::default_chr_class,
-		py::arg("chr_esc_class")    = ach::color_options::default_chr_esc_class,
-		py::arg("escape_char")      = ach::color_options::default_escape_char,
-		py::arg("empty_token_char") = ach::color_options::default_empty_token_char,
+		py::arg("num_class")        = ach::cc::color_options::default_num_class,
+		py::arg("str_class")        = ach::cc::color_options::default_str_class,
+		py::arg("str_esc_class")    = ach::cc::color_options::default_str_esc_class,
+		py::arg("chr_class")        = ach::cc::color_options::default_chr_class,
+		py::arg("chr_esc_class")    = ach::cc::color_options::default_chr_esc_class,
+		py::arg("escape_char")      = ach::cc::color_options::default_escape_char,
+		py::arg("empty_token_char") = ach::cc::color_options::default_empty_token_char,
 		py::arg("table_wrap_css_class") = "",
 		py::arg("valid_css_classes")    = "",
 		py::arg("replace") = false);

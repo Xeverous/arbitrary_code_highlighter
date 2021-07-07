@@ -2,7 +2,7 @@
 
 #include <string_view>
 
-namespace ach {
+namespace ach::cc {
 
 struct color_options
 {

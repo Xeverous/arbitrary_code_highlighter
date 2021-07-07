@@ -1,10 +1,10 @@
-#include <ach/detail/color_tokenizer.hpp>
-#include <ach/detail/text_utils.hpp>
-#include <ach/errors.hpp>
+#include <ach/cc/detail/color_tokenizer.hpp>
+#include <ach/cc/errors.hpp>
+#include <ach/utility/text.hpp>
 
 #include <charconv>
 
-namespace ach::detail {
+namespace ach::cc::detail {
 
 color_token color_tokenizer::next_token(color_options options)
 {
@@ -19,7 +19,7 @@ color_token color_tokenizer::next_token(color_options options)
 	}
 
 	char const next_char = *c;
-	if (is_alpha_or_underscore(next_char)) {
+	if (utility::is_alpha_or_underscore(next_char)) {
 		text_location const extracted_text = extractor.extract_alphas_underscores();
 		std::string_view const identifier = extracted_text.str();
 
@@ -41,7 +41,7 @@ color_token color_tokenizer::next_token(color_options options)
 
 		return color_token{identifier_span{identifier}, extracted_text};
 	}
-	else if (is_digit(next_char)) {
+	else if (utility::is_digit(next_char)) {
 		text_location const extracted_digits = extractor.extract_digits();
 		text_location extracted_name = extractor.extract_alphas_underscores();
 

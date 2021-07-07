@@ -1,5 +1,5 @@
-#include <ach/text_extractor.hpp>
-#include <ach/detail/text_utils.hpp>
+#include <ach/common/text_extractor.hpp>
+#include <ach/utility/text.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -48,20 +48,20 @@ text_location text_extractor::extract_by(Predicate pred)
 text_location text_extractor::extract_identifier()
 {
 	std::optional<char> c = peek_next_char();
-	if (!c || detail::is_digit(*c))
+	if (!c || utility::is_digit(*c))
 		return current_location();
 
-	return extract_by(detail::is_alnum_or_underscore);
+	return extract_by(utility::is_alnum_or_underscore);
 }
 
 text_location text_extractor::extract_alphas_underscores()
 {
-	return extract_by(detail::is_alpha_or_underscore);
+	return extract_by(utility::is_alpha_or_underscore);
 }
 
 text_location text_extractor::extract_digits()
 {
-	return extract_by(detail::is_digit);
+	return extract_by(utility::is_digit);
 }
 
 text_location text_extractor::extract_n_characters(std::size_t n)

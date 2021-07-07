@@ -1,10 +1,10 @@
 #pragma once
 
-#include <ach/text_extractor.hpp>
-#include <ach/color_options.hpp>
-#include <ach/detail/color_token.hpp>
+#include <ach/common/text_extractor.hpp>
+#include <ach/cc/color_options.hpp>
+#include <ach/cc/detail/color_token.hpp>
 
-namespace ach::detail {
+namespace ach::cc::detail {
 
 class color_tokenizer
 {

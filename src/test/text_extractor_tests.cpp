@@ -1,4 +1,4 @@
-#include <ach/text_extractor.hpp>
+#include <ach/common/text_extractor.hpp>
 
 #include <boost/test/unit_test.hpp>
 

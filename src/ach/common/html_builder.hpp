@@ -1,11 +1,11 @@
 #pragma once
 
-#include <ach/detail/html_types.hpp>
+#include <ach/common/html_types.hpp>
 
 #include <string>
 #include <string_view>
 
-namespace ach::detail {
+namespace ach {
 
 class html_builder
 {
