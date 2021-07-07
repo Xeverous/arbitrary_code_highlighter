@@ -150,7 +150,7 @@ std::variant<std::string, highlighter_error> run_highlighter(
 	highlighter_options const& options)
 {
 	bool const wrap_in_table = !options.generation.table_wrap_css_class.empty();
-	const auto num_lines = detail::count_lines(code);
+	auto const num_lines = detail::count_lines(code);
 	html_builder builder;
 	// TODO use builder.reserve()
 	if (wrap_in_table) {
@@ -210,7 +210,7 @@ std::variant<std::string, highlighter_error> run_highlighter(
 	return std::move(builder.str());
 }
 
-std::ostream& operator<<(std::ostream& os, ach::text_location tl)
+std::ostream& operator<<(std::ostream& os, text_location tl)
 {
 	os << "line " << tl.line_number() << ":\n" << tl.line();
 
@@ -240,7 +240,7 @@ std::ostream& operator<<(std::ostream& os, ach::text_location tl)
 	return os << '\n';
 }
 
-std::ostream& operator<<(std::ostream& os, ach::highlighter_error const& error)
+std::ostream& operator<<(std::ostream& os, highlighter_error const& error)
 {
 	os << error.reason;
 
