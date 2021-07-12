@@ -39,6 +39,8 @@ public:
 		return text_location(_line_number, _current_line, _column_number, _current_line.size() - _column_number);
 	}
 
+	std::string_view current_line() const noexcept { return _current_line; }
+
 	// 0-length match, also returned as an error when extracting fails
 	text_location current_location() const noexcept {
 		return text_location(_line_number, _current_line, _column_number, 0);
@@ -51,6 +53,7 @@ public:
 	text_location extract_n_characters(std::size_t n);
 	text_location extract_until_end_of_line();
 	text_location extract_quoted(char quote, char escape);
+	text_location extract_rest_of_line();
 
 	[[nodiscard]] bool load_next_line();
 
