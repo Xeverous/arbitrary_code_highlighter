@@ -8,8 +8,8 @@ namespace ach {
 
 bool text_extractor::load_next_line()
 {
-	auto const first = _remaining_text.data();
-	auto const last = _remaining_text.data() + _remaining_text.size();
+	const auto first = _remaining_text.data();
+	const auto last = _remaining_text.data() + _remaining_text.size();
 
 	auto it = std::find(first, last, '\n');
 
@@ -24,7 +24,7 @@ bool text_extractor::load_next_line()
 	++_line_number;
 	_column_number = 0;
 
-	auto const line_length = it - first;
+	const auto line_length = it - first;
 	_current_line = std::string_view(first, line_length);
 	_remaining_text.remove_prefix(line_length);
 	return true;
@@ -33,14 +33,14 @@ bool text_extractor::load_next_line()
 template <typename Predicate>
 text_location text_extractor::extract_by(Predicate pred)
 {
-	auto const text = remaining_line_str();
-	auto const first = text.data();
-	auto const last = text.data() + text.size();
+	const auto text = remaining_line_str();
+	const auto first = text.data();
+	const auto last = text.data() + text.size();
 
-	auto const it = std::find_if_not(first, last, pred);
-	auto const length = it - first;
+	const auto it = std::find_if_not(first, last, pred);
+	const auto length = it - first;
 
-	auto const result = text_location(_line_number, _current_line, _column_number, length);
+	const auto result = text_location(_line_number, _current_line, _column_number, length);
 	skip(length);
 	return result;
 }
@@ -70,7 +70,7 @@ text_location text_extractor::extract_n_characters(std::size_t n)
 		return current_location();
 	}
 
-	auto const result = text_location(_line_number, _current_line, _column_number, n);
+	const auto result = text_location(_line_number, _current_line, _column_number, n);
 	skip(n);
 	return result;
 }
@@ -86,7 +86,7 @@ text_location text_extractor::extract_quoted(char quote, char escape)
 		return current_location();
 	}
 
-	std::string_view const remaining = [this]() {
+	const std::string_view remaining = [this]() {
 		std::string_view text = remaining_line_str();
 		assert(text.size() >= 1u);
 		text.remove_prefix(1u);
@@ -125,8 +125,8 @@ text_location text_extractor::extract_quoted(char quote, char escape)
 		return current_location();
 	}
 
-	auto const length = 1 + (it - first); // 1 is the starting quote, rest is the loop
-	auto const result = text_location(_line_number, _current_line, _column_number, length);
+	const auto length = 1 + (it - first); // 1 is the starting quote, rest is the loop
+	const auto result = text_location(_line_number, _current_line, _column_number, length);
 	skip(length);
 	return result;
 }

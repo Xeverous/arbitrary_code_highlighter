@@ -15,18 +15,18 @@ void find_and_print_mismatched_line(
 	std::string_view actual,
 	boost::test_tools::assertion_result& test_result)
 {
-	auto const expected_first = expected.data();
-	auto const expected_last  = expected.data() + expected.size();
-	auto const actual_first   = actual.data();
-	auto const actual_last    = actual.data() + actual.size();
-	auto const [expected_it, actual_it] = std::mismatch(expected_first, expected_last, actual_first, actual_last);
+	const auto expected_first = expected.data();
+	const auto expected_last  = expected.data() + expected.size();
+	const auto actual_first   = actual.data();
+	const auto actual_last    = actual.data() + actual.size();
+	const auto [expected_it, actual_it] = std::mismatch(expected_first, expected_last, actual_first, actual_last);
 
-	auto const line_number = std::count(actual_first, actual_it, '\n');
+	const auto line_number = std::count(actual_first, actual_it, '\n');
 	test_result.message() << "on line " << line_number << " (expected/actual):\n";
 
-	auto const print_line = [&](auto first, auto pos, auto last) {
-		auto const line_first = std::find(std::make_reverse_iterator(pos), std::make_reverse_iterator(first), '\n').base();
-		auto const line_last = std::find(pos, last, '\n');
+	const auto print_line = [&](auto first, auto pos, auto last) {
+		const auto line_first = std::find(std::make_reverse_iterator(pos), std::make_reverse_iterator(first), '\n').base();
+		const auto line_last = std::find(pos, last, '\n');
 
 		for (auto it = line_first; it != line_last; ++it)
 			test_result.message() << *it;
@@ -48,7 +48,7 @@ boost::test_tools::assertion_result run_and_compare(
 	std::string_view input_code,
 	std::string_view input_color,
 	std::string_view expected_output,
-	ach::highlighter_options const& options = {})
+	const ach::highlighter_options& options = {})
 {
 	std::variant<std::string, ach::highlighter_error> output = ach::run_highlighter(input_code, input_color, options);
 
@@ -59,7 +59,7 @@ boost::test_tools::assertion_result run_and_compare(
 	}
 
 	BOOST_TEST_REQUIRE(std::holds_alternative<std::string>(output));
-	auto const actual_output = static_cast<std::string_view>(std::get<std::string>(output));
+	const auto actual_output = static_cast<std::string_view>(std::get<std::string>(output));
 
 	if (actual_output == expected_output)
 		return true;
@@ -70,7 +70,7 @@ boost::test_tools::assertion_result run_and_compare(
 }
 
 void check_location(
-	char const* location_name,
+	const char* location_name,
 	ach::text_location expected,
 	ach::text_location actual,
 	boost::test_tools::assertion_result& test_result)
@@ -106,7 +106,7 @@ boost::test_tools::assertion_result run_and_expect_error(
 	std::string_view input_code,
 	std::string_view input_color,
 	ach::highlighter_error expected_error,
-	ach::highlighter_options const& options = {})
+	const ach::highlighter_options& options = {})
 {
 	std::variant<std::string, ach::highlighter_error> output = ach::run_highlighter(input_code, input_color, options);
 
@@ -125,7 +125,7 @@ boost::test_tools::assertion_result run_and_expect_error(
 		return test_result;
 	}
 
-	auto const actual_error = std::get<ach::highlighter_error>(output);
+	const auto actual_error = std::get<ach::highlighter_error>(output);
 
 	if (expected_error.reason != actual_error.reason) {
 		test_result = false;

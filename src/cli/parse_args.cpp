@@ -81,7 +81,7 @@ int run(int argc, char* argv[])
 		po::store(po::command_line_parser(argc, argv).options(all_options).positional(positional_options_description).run(), vm);
 		po::notify(vm);
 	}
-	catch (std::exception const& e) {
+	catch (const std::exception& e) {
 		std::cout << "Error: " << e.what();
 		return EXIT_FAILURE;
 	}

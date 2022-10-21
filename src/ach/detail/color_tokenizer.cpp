@@ -18,10 +18,10 @@ color_token color_tokenizer::next_token(color_options options)
 			return color_token{end_of_input{}, extractor.current_location()};
 	}
 
-	char const next_char = *c;
+	const char next_char = *c;
 	if (is_alpha_or_underscore(next_char)) {
-		text_location const extracted_text = extractor.extract_alphas_underscores();
-		std::string_view const identifier = extracted_text.str();
+		const text_location extracted_text = extractor.extract_alphas_underscores();
+		const std::string_view identifier = extracted_text.str();
 
 		if (identifier == options.num_class) {
 			return color_token{number{identifier}, extracted_text};
@@ -29,23 +29,23 @@ color_token color_tokenizer::next_token(color_options options)
 
 		if (identifier == options.str_class) {
 			return color_token{
-				quoted_span{options.str_class, options.str_esc_class, '"', options.escape_char},
+				quoted_span{{options.str_class}, {options.str_esc_class}, '"', options.escape_char},
 				extracted_text};
 		}
 
 		if (identifier == options.chr_class) {
 			return color_token{
-				quoted_span{options.chr_class, options.chr_esc_class, '\'', options.escape_char},
+				quoted_span{{options.chr_class}, {options.chr_esc_class}, '\'', options.escape_char},
 				extracted_text};
 		}
 
 		return color_token{identifier_span{identifier}, extracted_text};
 	}
 	else if (is_digit(next_char)) {
-		text_location const extracted_digits = extractor.extract_digits();
+		const text_location extracted_digits = extractor.extract_digits();
 		text_location extracted_name = extractor.extract_alphas_underscores();
 
-		auto const num_str = extracted_digits.str();
+		const auto num_str = extracted_digits.str();
 		std::size_t num = 0;
 		if (std::from_chars(num_str.data(), num_str.data() + num_str.size(), num).ec != std::errc()) {
 			return color_token{invalid_token{errors::invalid_number}, extracted_digits};
@@ -53,8 +53,7 @@ color_token color_tokenizer::next_token(color_options options)
 
 		std::optional<css_class> class_ = css_class{extracted_name.str()};
 		if (extracted_name.str().empty()) {
-			std::optional<char> c = extractor.peek_next_char();
-			if (c == options.empty_token_char) {
+			if (extractor.peek_next_char() == options.empty_token_char) {
 				extracted_name = extractor.extract_n_characters(1);
 				class_ = std::nullopt;
 			}
@@ -81,7 +80,7 @@ color_token color_tokenizer::next_token(color_options options)
 	}
 
 	// unknown character - treat as a symbol token
-	text_location const extracted_symbol = extractor.extract_n_characters(1);
+	const text_location extracted_symbol = extractor.extract_n_characters(1);
 	return color_token{symbol{extracted_symbol.str().front()}, extracted_symbol};
 }
 

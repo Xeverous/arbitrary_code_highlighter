@@ -14,7 +14,7 @@ namespace py = pybind11;
 
 namespace {
 
-std::string to_string(ach::highlighter_error const& error)
+std::string to_string(const ach::highlighter_error& error)
 {
 	std::stringstream ss;
 	ss << error;
@@ -41,7 +41,7 @@ py::str run_highlighter(
 		throw py::value_error("argument 'empty_token_char' should be 1 character");
 	}
 
-	auto const result = ach::run_highlighter(
+	const auto result = ach::run_highlighter(
 		code,
 		color,
 		ach::highlighter_options{
@@ -60,7 +60,7 @@ py::str run_highlighter(
 		});
 
 	return std::visit(ach::utility::visitor{
-		[](std::string const& output) {
+		[](const std::string& output) {
 			return py::str(output);
 		},
 		[](ach::highlighter_error error) -> py::str {

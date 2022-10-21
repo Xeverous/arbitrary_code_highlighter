@@ -34,9 +34,9 @@ struct highlighter_error
 std::variant<std::string, highlighter_error> run_highlighter(
 	std::string_view code,
 	std::string_view color,
-	highlighter_options const& options = {});
+	const highlighter_options& options = {});
 
 std::ostream& operator<<(std::ostream& os, ach::text_location tl);
-std::ostream& operator<<(std::ostream& os, ach::highlighter_error const& error);
+std::ostream& operator<<(std::ostream& os, const ach::highlighter_error& error);
 
 }

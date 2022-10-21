@@ -63,7 +63,7 @@ void html_builder::append_class(css_class class_, bool replace_underscores_to_hy
 		}
 	}
 	else {
-		auto const css_class = class_.name;
+		const auto css_class = class_.name;
 		result.append(css_class.data(), css_class.data() + css_class.length());
 	}
 }
@@ -119,11 +119,11 @@ void html_builder::append_raw(std::string_view text)
 
 void html_builder::append_raw(char c)
 {
-	std::string_view const escaped = to_escaped_html(c);
+	const std::string_view escaped = to_escaped_html(c);
 	result.append(escaped.data(), escaped.data() + escaped.length());
 }
 
-std::string_view html_builder::to_escaped_html(char const& c) noexcept
+std::string_view html_builder::to_escaped_html(const char& c) noexcept
 {
 	switch (c)
 	{

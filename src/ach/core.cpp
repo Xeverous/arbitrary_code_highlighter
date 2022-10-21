@@ -24,7 +24,7 @@ result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 {
 	return std::visit(utility::visitor{
 		[&](identifier_span id_span) -> result_t {
-			text_location const extracted_identifier = code_tr.extract_identifier();
+			const text_location extracted_identifier = code_tr.extract_identifier();
 
 			if (extracted_identifier.str().empty()) {
 				return highlighter_error{color_tn.origin, extracted_identifier, errors::expected_identifier};
@@ -33,8 +33,8 @@ result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 			return simple_span_element{html_text{extracted_identifier.str()}, id_span.class_};
 		},
 		[&](fixed_length_span fl_span) -> result_t {
-			text_location const extracted_characters = code_tr.extract_n_characters(fl_span.length);
-			auto const extracted_chars = extracted_characters.str().size();
+			const text_location extracted_characters = code_tr.extract_n_characters(fl_span.length);
+			const auto extracted_chars = extracted_characters.str().size();
 			assert(extracted_chars <= fl_span.length);
 
 			if (extracted_chars < fl_span.length) {
@@ -44,12 +44,12 @@ result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 			return simple_span_element{html_text{extracted_characters.str()}, fl_span.class_};
 		},
 		[&](line_delimited_span ld_span) -> result_t {
-			text_location const extracted_text = code_tr.extract_until_end_of_line();
+			const text_location extracted_text = code_tr.extract_until_end_of_line();
 			// no if extracted_text.str().empty() here - we want to allow empty extractions
 			return simple_span_element{html_text{extracted_text.str()}, ld_span.class_};
 		},
 		[&](symbol s) -> result_t {
-			text_location const extracted_symbol = code_tr.extract_n_characters(1);
+			const text_location extracted_symbol = code_tr.extract_n_characters(1);
 
 			if (extracted_symbol.str().empty()) {
 				return highlighter_error{color_tn.origin, extracted_symbol, errors::expected_symbol};
@@ -64,7 +64,7 @@ result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 			return simple_span_element{html_text{extracted_symbol.str()}, std::nullopt};
 		},
 		[&](number num) -> result_t {
-			text_location const extracted_digits = code_tr.extract_digits();
+			const text_location extracted_digits = code_tr.extract_digits();
 
 			if (extracted_digits.str().empty()) {
 				return highlighter_error{color_tn.origin, extracted_digits, errors::expected_number};
@@ -76,7 +76,7 @@ result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 			return simple_span_element{html_text{}, std::nullopt};
 		},
 		[&](quoted_span span) -> result_t {
-			text_location const extracted_text = code_tr.extract_quoted(span.delimeter, span.escape);
+			const text_location extracted_text = code_tr.extract_quoted(span.delimeter, span.escape);
 
 			if (extracted_text.str().empty()) {
 				return highlighter_error{color_tn.origin, extracted_text, errors::expected_quoted};
@@ -85,7 +85,7 @@ result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 			return quote_span_element{html_text{extracted_text.str()}, span.primary_class, span.escape_class, span.escape};
 		},
 		[&](end_of_line) -> result_t {
-			text_location const extracted_char = code_tr.extract_n_characters(1);
+			const text_location extracted_char = code_tr.extract_n_characters(1);
 
 			if (extracted_char.str().empty()) {
 				return highlighter_error{color_tn.origin, extracted_char, errors::expected_line_feed};
@@ -115,7 +115,7 @@ using invalid_class_t = std::optional<css_class>;
 
 invalid_class_t check_class(css_class class_, std::string_view valid_classes)
 {
-	auto const it = std::search(
+	const auto it = std::search(
 		valid_classes.begin(),
 		valid_classes.end(),
 		std::default_searcher(class_.name.begin(), class_.name.end()));
@@ -147,10 +147,10 @@ namespace ach {
 std::variant<std::string, highlighter_error> run_highlighter(
 	std::string_view code,
 	std::string_view color,
-	highlighter_options const& options)
+	const highlighter_options& options)
 {
-	bool const wrap_in_table = !options.generation.table_wrap_css_class.empty();
-	auto const num_lines = detail::count_lines(code);
+	const bool wrap_in_table = !options.generation.table_wrap_css_class.empty();
+	const auto num_lines = detail::count_lines(code);
 	html_builder builder;
 	// TODO use builder.reserve()
 	if (wrap_in_table) {
@@ -227,7 +227,7 @@ std::ostream& operator<<(std::ostream& os, text_location tl)
 			os << ' ';
 	}
 
-	auto const highlight_length = tl.str().size();
+	const auto highlight_length = tl.str().size();
 
 	if (highlight_length == 0) {
 		os << '^';
@@ -240,7 +240,7 @@ std::ostream& operator<<(std::ostream& os, text_location tl)
 	return os << '\n';
 }
 
-std::ostream& operator<<(std::ostream& os, highlighter_error const& error)
+std::ostream& operator<<(std::ostream& os, const highlighter_error& error)
 {
 	os << error.reason;
 

@@ -19,7 +19,7 @@ public:
 	}
 
 	std::optional<char> peek_next_char() const noexcept {
-		auto const remaining = remaining_line_str();
+		const auto remaining = remaining_line_str();
 
 		if (remaining.empty()) {
 			return std::nullopt;

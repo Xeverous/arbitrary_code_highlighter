@@ -14,7 +14,7 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 		ach::text_extractor te("");
 		BOOST_TEST(!te.peek_next_char().has_value());
 		BOOST_TEST(te.has_reached_end());
-		ach::text_location const loc = te.current_location();
+		const ach::text_location loc = te.current_location();
 		BOOST_TEST(loc.line().empty());
 		BOOST_TEST(loc.str().empty());
 		BOOST_TEST(loc.first_column() == 0);
@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 				!te.has_reached_end(),
 				"text extractor should not reach end while steps are remaining");
 
-			auto const loc = [&]() -> ach::text_location {
+			const auto loc = [&]() -> ach::text_location {
 				if (step.operation == extraction_operation::alphas_underscores) {
 					return te.extract_alphas_underscores();
 				}
@@ -116,7 +116,7 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 	BOOST_AUTO_TEST_SUITE(main_text_extractor_tests,
 		* ut::depends_on("text_extractor_suite/empty_input_invariants"))
 		/*
-		 * Do not write "auto const steps =" in the tests, there is a bug in GCC with
+		 * Do not write "const auto steps =" in the tests, there is a bug in GCC with
 		 * initializer list type deduction which breaks constness and causes compile error.
 		 *
 		 * https://gcc.gnu.org/bugzilla/show_bug.cgi?id=63149
@@ -250,7 +250,7 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 
 		BOOST_AUTO_TEST_CASE(quoted_escape)
 		{
-			std::string_view const text = R"('abc\na\b\bccc\\\nX')";
+			const std::string_view text = R"('abc\na\b\bccc\\\nX')";
 			auto steps = {
 				extraction_step(extraction_operation::quoted, text, 1, 0)
 			};
