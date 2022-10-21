@@ -10,6 +10,9 @@ build/
 .cproject
 .settings/
 
+# clangd
+.cache/
+
 # personal stuff
 notes/
 
