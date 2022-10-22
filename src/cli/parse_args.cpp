@@ -16,7 +16,7 @@ namespace
 void print_help(const boost::program_options::options_description& options)
 {
 	std::cout << ach::utility::program_description << "\n"
-		"NOTE: the CLI front of the program is NOT finished and does nothing";
+		"NOTE: the CLI front of the program is NOT finished and does nothing!\n";
 
 	options.print(std::cout);
 
@@ -72,8 +72,7 @@ int run(int argc, char* argv[])
 		po::options_description all_options;
 		all_options.add(positional_options).add(extra_options).add(other_options);
 
-		if (argc == 0 || argc == 1)
-		{
+		if (argc == 0 || argc == 1) {
 			print_help(all_options);
 			return EXIT_SUCCESS;
 		}
@@ -81,9 +80,20 @@ int run(int argc, char* argv[])
 		po::variables_map vm;
 		po::store(po::command_line_parser(argc, argv).options(all_options).positional(positional_options_description).run(), vm);
 		po::notify(vm);
+
+		if (show_help) {
+			print_help(all_options);
+			return EXIT_SUCCESS;
+		}
+
+		if (show_version) {
+			namespace av = ach::utility::version;
+			std::cout << av::major << "." << av::minor << "." << av::patch << "\n";
+			return EXIT_SUCCESS;
+		}
 	}
 	catch (const std::exception& e) {
-		std::cout << "Error: " << e.what();
+		std::cout << "Error: " << e.what() << "\n";
 		return EXIT_FAILURE;
 	}
 	catch (...) {
