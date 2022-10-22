@@ -2,11 +2,13 @@
 #include <ach/mirror/errors.hpp>
 #include <ach/mirror/code_tokenizer.hpp>
 #include <ach/mirror/color_tokenizer.hpp>
+#include <ach/web/types.hpp>
 #include <ach/web/html_builder.hpp>
 #include <ach/text/utils.hpp>
 #include <ach/utility/visitor.hpp>
 
 #include <cassert>
+#include <optional>
 #include <variant>
 #include <utility>
 #include <ostream>
@@ -111,9 +113,7 @@ result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 	}, color_tn.token);
 }
 
-using invalid_class_t = std::optional<web::css_class>;
-
-invalid_class_t check_class(web::css_class class_, std::string_view valid_classes)
+std::optional<web::css_class> find_invalid_css_class(web::css_class class_, std::string_view valid_classes)
 {
 	const auto it = std::search(
 		valid_classes.begin(),
@@ -126,18 +126,19 @@ invalid_class_t check_class(web::css_class class_, std::string_view valid_classe
 		return std::nullopt;
 }
 
-invalid_class_t check_css_classes(web::simple_span_element el, std::string_view valid_classes)
+std::optional<web::css_class> find_invalid_css_class(web::simple_span_element el, std::string_view valid_classes)
 {
-	return check_class(*el.class_, valid_classes);
+	assert(el.class_.has_value());
+	return find_invalid_css_class(*el.class_, valid_classes);
 }
 
-invalid_class_t check_css_classes(web::quote_span_element el, std::string_view valid_classes)
+std::optional<web::css_class> find_invalid_css_class(web::quote_span_element el, std::string_view valid_classes)
 {
-	invalid_class_t maybe_error = check_class(el.primary_class, valid_classes);
-	if (maybe_error)
-		return maybe_error;
+	std::optional<web::css_class> invalid_class = find_invalid_css_class(el.primary_class, valid_classes);
+	if (invalid_class)
+		return invalid_class;
 
-	return check_class(el.escape_class, valid_classes);
+	return find_invalid_css_class(el.escape_class, valid_classes);
 }
 
 }
@@ -169,15 +170,15 @@ std::variant<std::string, highlighter_error> run_highlighter(
 			},
 			[&](auto span) -> std::optional<highlighter_error> {
 				if (!options.generation.valid_css_classes.empty()) {
-					invalid_class_t maybe_error = check_css_classes(
+					std::optional<web::css_class> invalid_class = find_invalid_css_class(
 						span, options.generation.valid_css_classes);
 
-					if (maybe_error)
+					if (invalid_class)
 						return highlighter_error{
 							color_tn.origin,
 							code_tr.current_location(),
 							errors::invalid_css_class,
-							(*maybe_error).name};
+							(*invalid_class).name};
 				}
 
 				builder.add_span(span, options.generation.replace_underscores_to_hyphens);
