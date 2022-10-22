@@ -16,6 +16,7 @@ public:
 	{
 		// ignore if loading fails, invariants will be preserved
 		(void) load_next_line();
+		_line_number = 0;
 	}
 
 	std::optional<char> peek_next_char() const noexcept {
@@ -70,8 +71,9 @@ private:
 
 	std::string_view _remaining_text;
 	std::string_view _current_line;
-	std::size_t _line_number = 0;   // 1-based index, incremented on each line load (first loaded line is 1st)
-	std::size_t _column_number = 0; // number of columns consumed, 0-based index
+	// Both indexes are 0-based. Add 1 for human output.
+	std::size_t _line_number = 0;
+	std::size_t _column_number = 0;
 };
 
 }

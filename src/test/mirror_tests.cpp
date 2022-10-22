@@ -341,8 +341,8 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 			"sizeof...(Args) <= 123.0f",
 			"keyword...(tparam) <= num",
 			mirror::highlighter_error{
-				text::location(1, "keyword...(tparam) <= num", 25, 0),
-				text::location(1, "sizeof...(Args) <= 123.0f", 22, 3),
+				text::location(0, "keyword...(tparam) <= num", 25, 0),
+				text::location(0, "sizeof...(Args) <= 123.0f", 22, 3),
 				mirror::errors::exhausted_color
 			}));
 	}
@@ -353,8 +353,8 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 			"abc xyz",
 			"val val val",
 			mirror::highlighter_error{
-				text::location(1, "val val val", 7, 1),
-				text::location(1, "abc xyz", 7, 0),
+				text::location(0, "val val val", 7, 1),
+				text::location(0, "abc xyz", 7, 0),
 				mirror::errors::expected_symbol
 			}));
 	}
@@ -365,8 +365,8 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 			"@ # $",
 			"@ # $$",
 			mirror::highlighter_error{
-				text::location(1, "@ # $$", 5, 1),
-				text::location(1, "@ # $", 5, 0),
+				text::location(0, "@ # $$", 5, 1),
+				text::location(0, "@ # $", 5, 0),
 				mirror::errors::expected_symbol
 			}));
 	}
@@ -377,8 +377,8 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 			"@ # $",
 			"@ # ?",
 			mirror::highlighter_error{
-				text::location(1, "@ # ?", 4, 1),
-				text::location(1, "@ # $", 4, 1),
+				text::location(0, "@ # ?", 4, 1),
+				text::location(0, "@ # $", 4, 1),
 				mirror::errors::mismatched_symbol
 			}));
 	}
@@ -389,8 +389,8 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 			"abc xyz ",
 			"val val val",
 			mirror::highlighter_error{
-				text::location(1, "val val val", 8, 3),
-				text::location(1, "abc xyz ", 8, 0),
+				text::location(0, "val val val", 8, 3),
+				text::location(0, "abc xyz ", 8, 0),
 				mirror::errors::expected_identifier
 			}));
 	}
@@ -401,8 +401,8 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 			"abc xyz 123",
 			"val val val",
 			mirror::highlighter_error{
-				text::location(1, "val val val", 8, 3),
-				text::location(1, "abc xyz 123", 8, 0),
+				text::location(0, "val val val", 8, 3),
+				text::location(0, "abc xyz 123", 8, 0),
 				mirror::errors::expected_identifier
 			}));
 	}
@@ -413,8 +413,8 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 			"123 456 ",
 			"num num num",
 			mirror::highlighter_error{
-				text::location(1, "num num num", 8, 3),
-				text::location(1, "123 456 ", 8, 0),
+				text::location(0, "num num num", 8, 3),
+				text::location(0, "123 456 ", 8, 0),
 				mirror::errors::expected_number
 			}));
 	}
@@ -425,8 +425,8 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 			"123 456 abc",
 			"num num num",
 			mirror::highlighter_error{
-				text::location(1, "num num num", 8, 3),
-				text::location(1, "123 456 abc", 8, 0),
+				text::location(0, "num num num", 8, 3),
+				text::location(0, "123 456 abc", 8, 0),
 				mirror::errors::expected_number
 			}));
 	}
@@ -437,8 +437,8 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 			"abc",
 			"val\nval",
 			mirror::highlighter_error{
-				text::location(1, "val\n", 3, 1),
-				text::location(1, "abc", 3, 0),
+				text::location(0, "val\n", 3, 1),
+				text::location(0, "abc", 3, 0),
 				mirror::errors::expected_line_feed
 			}));
 	}
@@ -449,8 +449,8 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 			"abc@",
 			"val\nval",
 			mirror::highlighter_error{
-				text::location(1, "val\n", 3, 1),
-				text::location(1, "abc@", 3, 1),
+				text::location(0, "val\n", 3, 1),
+				text::location(0, "abc@", 3, 1),
 				mirror::errors::expected_line_feed
 			}));
 	}
@@ -461,8 +461,8 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 			"abc xyz\nfoo bar", // extra line of code to make sure remaining characters are checked per line
 			"val 5val",
 			mirror::highlighter_error{
-				text::location(1, "val 5val", 4, 4),
-				text::location(1, "abc xyz\n", 4, 0),
+				text::location(0, "val 5val", 4, 4),
+				text::location(0, "abc xyz\n", 4, 0),
 				mirror::errors::insufficient_characters
 			}));
 	}
@@ -473,8 +473,8 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 			"abc xyz\nfoo bar",
 			"val 123456789012345678901234567890val",
 			mirror::highlighter_error{
-				text::location(1, "val 123456789012345678901234567890val", 4, 30),
-				text::location(1, "abc xyz\n", 4, 0),
+				text::location(0, "val 123456789012345678901234567890val", 4, 30),
+				text::location(0, "abc xyz\n", 4, 0),
 				mirror::errors::invalid_number
 			}));
 	}
@@ -485,8 +485,8 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 			"xyz + 'a\tb\bc",
 			"val + chr",
 			mirror::highlighter_error{
-				text::location(1, "val + chr", 6, 3),
-				text::location(1, "xyz + 'a\tb\bc", 6, 0),
+				text::location(0, "val + chr", 6, 3),
+				text::location(0, "xyz + 'a\tb\bc", 6, 0),
 				mirror::errors::expected_quoted
 			}));
 	}
@@ -497,8 +497,8 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 			"@ # $",
 			"@ # $0",
 			mirror::highlighter_error{
-				text::location(1, "@ # $0", 5, 1),
-				text::location(1, "@ # $", 5, 0),
+				text::location(0, "@ # $0", 5, 1),
+				text::location(0, "@ # $", 5, 0),
 				mirror::errors::expected_span_class
 			}));
 	}
@@ -509,8 +509,8 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 			"@ # $",
 			"@ # $0!",
 			mirror::highlighter_error{
-				text::location(1, "@ # $0!", 5, 1),
-				text::location(1, "@ # $", 5, 0),
+				text::location(0, "@ # $0!", 5, 1),
+				text::location(0, "@ # $", 5, 0),
 				mirror::errors::expected_span_class
 			}));
 	}

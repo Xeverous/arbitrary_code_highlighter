@@ -210,7 +210,8 @@ std::variant<std::string, highlighter_error> run_highlighter(
 
 std::ostream& operator<<(std::ostream& os, text::location tl)
 {
-	os << "line " << tl.line_number() << ":\n" << tl.line();
+	// index is 0-based, add 1 for human output
+	os << "line " << tl.line_number() + 1 << ":\n" << tl.line();
 
 	if (tl.line().empty() || tl.line().back() != '\n')
 		os << '\n';
