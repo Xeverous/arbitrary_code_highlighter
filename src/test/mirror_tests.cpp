@@ -1,6 +1,6 @@
 #include <ach/mirror/core.hpp>
 #include <ach/mirror/errors.hpp>
-#include <ach/text/location.hpp>
+#include <ach/text/types.hpp>
 
 #include <boost/test/unit_test.hpp>
 
@@ -77,29 +77,29 @@ void check_location(
 	text::location actual,
 	boost::test_tools::assertion_result& test_result)
 {
-	if (expected.line_number() != actual.line_number()) {
+	if (expected.range().line != actual.range().line) {
 		test_result = false;
 		test_result.message() << location_name << ": line numbers differ, expected "
-			<< expected.line_number() << " but got " << actual.line_number() << "\n";
+			<< expected.range().line << " but got " << actual.range().line << "\n";
 	}
 
-	if (expected.line() != actual.line()) {
+	if (expected.whole_line() != actual.whole_line()) {
 		test_result = false;
 		test_result.message() << location_name << ": lines differ\n"
-			"EXPECTED (" << expected.line().size() << " characters):\n" << expected.line() << "\n"
-			"ACTUAL (" << actual.line().size() << " characters):\n" << actual.line() << "\n";
+			"EXPECTED (" << expected.whole_line().size() << " characters):\n" << expected.whole_line() << "\n"
+			"ACTUAL (" << actual.whole_line().size() << " characters):\n" << actual.whole_line() << "\n";
 	}
 
-	if (expected.first_column() != actual.first_column()) {
+	if (expected.range().column != actual.range().column) {
 		test_result = false;
-		test_result.message() << location_name << ": first column numbers differ, "
-			"expected " << expected.first_column() << " but got " << actual.first_column() << "\n";
+		test_result.message() << location_name << ": column numbers differ, "
+			"expected " << expected.range().column << " but got " << actual.range().column << "\n";
 	}
 
-	if (expected.length() != actual.length()) {
+	if (expected.range().length != actual.range().length) {
 		test_result = false;
 		test_result.message() << location_name << ": lengths differ, "
-			"expected " << expected.length() << " but got " << actual.length() << "\n";
+			"expected " << expected.range().length << " but got " << actual.range().length << "\n";
 	}
 }
 

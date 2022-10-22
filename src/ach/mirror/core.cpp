@@ -211,16 +211,16 @@ std::variant<std::string, highlighter_error> run_highlighter(
 std::ostream& operator<<(std::ostream& os, text::location tl)
 {
 	// index is 0-based, add 1 for human output
-	os << "line " << tl.line_number() + 1 << ":\n" << tl.line();
+	os << "line " << tl.range().line + 1 << ":\n" << tl.whole_line();
 
-	if (tl.line().empty() || tl.line().back() != '\n')
+	if (tl.whole_line().empty() || tl.whole_line().back() != '\n')
 		os << '\n';
 
-	assert(tl.first_column() < tl.line().size());
+	assert(tl.range().column < tl.whole_line().size());
 
 	// match the whitespace character used - tabs have different length
-	for (auto i = 0u; i < tl.first_column(); ++i) {
-		if (tl.line()[i] == '\t')
+	for (auto i = 0u; i < tl.range().column; ++i) {
+		if (tl.whole_line()[i] == '\t')
 			os << '\t';
 		else
 			os << ' ';

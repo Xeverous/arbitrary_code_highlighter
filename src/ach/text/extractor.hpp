@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ach/text/location.hpp>
+#include <ach/text/types.hpp>
 
 #include <string_view>
 #include <optional>

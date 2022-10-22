@@ -15,9 +15,9 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 		BOOST_TEST(!te.peek_next_char().has_value());
 		BOOST_TEST(te.has_reached_end());
 		const ach::text::location loc = te.current_location();
-		BOOST_TEST(loc.line().empty());
+		BOOST_TEST(loc.whole_line().empty());
 		BOOST_TEST(loc.str().empty());
-		BOOST_TEST(loc.first_column() == 0);
+		BOOST_TEST(loc.range().column == 0);
 	}
 
 	enum class extraction_operation { alphas_underscores, digits, identifier, n_characters, until_end_of_line, quoted };
@@ -102,8 +102,8 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 			}();
 
 			BOOST_TEST_MESSAGE("expecting \"" << step.expected_token << "\" token");
-			BOOST_TEST(loc.line_number() == step.expected_line_number);
-			BOOST_TEST(loc.first_column() == step.expected_first_column);
+			BOOST_TEST(loc.range().line == step.expected_line_number);
+			BOOST_TEST(loc.range().column == step.expected_first_column);
 			BOOST_TEST(step.expected_token == loc.str(), tt::per_element());
 		}
 
