@@ -2,7 +2,7 @@
 
 #include <string_view>
 
-namespace ach {
+namespace ach::mirror {
 
 struct color_options
 {

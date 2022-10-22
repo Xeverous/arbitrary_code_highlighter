@@ -1,12 +1,14 @@
-#include <ach/core.hpp>
-#include <ach/errors.hpp>
-#include <ach/text_location.hpp>
+#include <ach/mirror/core.hpp>
+#include <ach/mirror/errors.hpp>
+#include <ach/text/location.hpp>
 
 #include <boost/test/unit_test.hpp>
 
 #include <string_view>
 #include <ostream>
 #include <algorithm>
+
+using namespace ach;
 
 namespace {
 
@@ -48,11 +50,11 @@ boost::test_tools::assertion_result run_and_compare(
 	std::string_view input_code,
 	std::string_view input_color,
 	std::string_view expected_output,
-	const ach::highlighter_options& options = {})
+	const mirror::highlighter_options& options = {})
 {
-	std::variant<std::string, ach::highlighter_error> output = ach::run_highlighter(input_code, input_color, options);
+	std::variant<std::string, mirror::highlighter_error> output = run_highlighter(input_code, input_color, options);
 
-	if (auto ptr = std::get_if<ach::highlighter_error>(&output); ptr != nullptr) {
+	if (auto ptr = std::get_if<mirror::highlighter_error>(&output); ptr != nullptr) {
 		boost::test_tools::assertion_result test_result(false);
 		test_result.message() << *ptr;
 		return test_result;
@@ -71,8 +73,8 @@ boost::test_tools::assertion_result run_and_compare(
 
 void check_location(
 	const char* location_name,
-	ach::text_location expected,
-	ach::text_location actual,
+	text::location expected,
+	text::location actual,
 	boost::test_tools::assertion_result& test_result)
 {
 	if (expected.line_number() != actual.line_number()) {
@@ -105,10 +107,10 @@ void check_location(
 boost::test_tools::assertion_result run_and_expect_error(
 	std::string_view input_code,
 	std::string_view input_color,
-	ach::highlighter_error expected_error,
-	const ach::highlighter_options& options = {})
+	mirror::highlighter_error expected_error,
+	const mirror::highlighter_options& options = {})
 {
-	std::variant<std::string, ach::highlighter_error> output = ach::run_highlighter(input_code, input_color, options);
+	std::variant<std::string, mirror::highlighter_error> output = run_highlighter(input_code, input_color, options);
 
 	boost::test_tools::assertion_result test_result(true);
 
@@ -125,7 +127,7 @@ boost::test_tools::assertion_result run_and_expect_error(
 		return test_result;
 	}
 
-	const auto actual_error = std::get<ach::highlighter_error>(output);
+	const auto actual_error = std::get<mirror::highlighter_error>(output);
 
 	if (expected_error.reason != actual_error.reason) {
 		test_result = false;
@@ -326,7 +328,7 @@ BOOST_AUTO_TEST_SUITE(highlighter_positive)
 			"one1 two2 three3",
 			"key_word k_e_y_w_o_r_d _keyword_",
 			"<span class=\"key-word\">one1</span> <span class=\"k-e-y-w-o-r-d\">two2</span> <span class=\"-keyword-\">three3</span>",
-			ach::highlighter_options{ach::generation_options{true}, {}}));
+			mirror::highlighter_options{mirror::generation_options{true}, {}}));
 	}
 
 BOOST_AUTO_TEST_SUITE_END()
@@ -338,10 +340,10 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 		BOOST_TEST(run_and_expect_error(
 			"sizeof...(Args) <= 123.0f",
 			"keyword...(tparam) <= num",
-			ach::highlighter_error{
-				ach::text_location(1, "keyword...(tparam) <= num", 25, 0),
-				ach::text_location(1, "sizeof...(Args) <= 123.0f", 22, 3),
-				ach::errors::exhausted_color
+			mirror::highlighter_error{
+				text::location(1, "keyword...(tparam) <= num", 25, 0),
+				text::location(1, "sizeof...(Args) <= 123.0f", 22, 3),
+				mirror::errors::exhausted_color
 			}));
 	}
 
@@ -350,10 +352,10 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 		BOOST_TEST(run_and_expect_error(
 			"abc xyz",
 			"val val val",
-			ach::highlighter_error{
-				ach::text_location(1, "val val val", 7, 1),
-				ach::text_location(1, "abc xyz", 7, 0),
-				ach::errors::expected_symbol
+			mirror::highlighter_error{
+				text::location(1, "val val val", 7, 1),
+				text::location(1, "abc xyz", 7, 0),
+				mirror::errors::expected_symbol
 			}));
 	}
 
@@ -362,10 +364,10 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 		BOOST_TEST(run_and_expect_error(
 			"@ # $",
 			"@ # $$",
-			ach::highlighter_error{
-				ach::text_location(1, "@ # $$", 5, 1),
-				ach::text_location(1, "@ # $", 5, 0),
-				ach::errors::expected_symbol
+			mirror::highlighter_error{
+				text::location(1, "@ # $$", 5, 1),
+				text::location(1, "@ # $", 5, 0),
+				mirror::errors::expected_symbol
 			}));
 	}
 
@@ -374,10 +376,10 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 		BOOST_TEST(run_and_expect_error(
 			"@ # $",
 			"@ # ?",
-			ach::highlighter_error{
-				ach::text_location(1, "@ # ?", 4, 1),
-				ach::text_location(1, "@ # $", 4, 1),
-				ach::errors::mismatched_symbol
+			mirror::highlighter_error{
+				text::location(1, "@ # ?", 4, 1),
+				text::location(1, "@ # $", 4, 1),
+				mirror::errors::mismatched_symbol
 			}));
 	}
 
@@ -386,10 +388,10 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 		BOOST_TEST(run_and_expect_error(
 			"abc xyz ",
 			"val val val",
-			ach::highlighter_error{
-				ach::text_location(1, "val val val", 8, 3),
-				ach::text_location(1, "abc xyz ", 8, 0),
-				ach::errors::expected_identifier
+			mirror::highlighter_error{
+				text::location(1, "val val val", 8, 3),
+				text::location(1, "abc xyz ", 8, 0),
+				mirror::errors::expected_identifier
 			}));
 	}
 
@@ -398,10 +400,10 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 		BOOST_TEST(run_and_expect_error(
 			"abc xyz 123",
 			"val val val",
-			ach::highlighter_error{
-				ach::text_location(1, "val val val", 8, 3),
-				ach::text_location(1, "abc xyz 123", 8, 0),
-				ach::errors::expected_identifier
+			mirror::highlighter_error{
+				text::location(1, "val val val", 8, 3),
+				text::location(1, "abc xyz 123", 8, 0),
+				mirror::errors::expected_identifier
 			}));
 	}
 
@@ -410,10 +412,10 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 		BOOST_TEST(run_and_expect_error(
 			"123 456 ",
 			"num num num",
-			ach::highlighter_error{
-				ach::text_location(1, "num num num", 8, 3),
-				ach::text_location(1, "123 456 ", 8, 0),
-				ach::errors::expected_number
+			mirror::highlighter_error{
+				text::location(1, "num num num", 8, 3),
+				text::location(1, "123 456 ", 8, 0),
+				mirror::errors::expected_number
 			}));
 	}
 
@@ -422,10 +424,10 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 		BOOST_TEST(run_and_expect_error(
 			"123 456 abc",
 			"num num num",
-			ach::highlighter_error{
-				ach::text_location(1, "num num num", 8, 3),
-				ach::text_location(1, "123 456 abc", 8, 0),
-				ach::errors::expected_number
+			mirror::highlighter_error{
+				text::location(1, "num num num", 8, 3),
+				text::location(1, "123 456 abc", 8, 0),
+				mirror::errors::expected_number
 			}));
 	}
 
@@ -434,10 +436,10 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 		BOOST_TEST(run_and_expect_error(
 			"abc",
 			"val\nval",
-			ach::highlighter_error{
-				ach::text_location(1, "val\n", 3, 1),
-				ach::text_location(1, "abc", 3, 0),
-				ach::errors::expected_line_feed
+			mirror::highlighter_error{
+				text::location(1, "val\n", 3, 1),
+				text::location(1, "abc", 3, 0),
+				mirror::errors::expected_line_feed
 			}));
 	}
 
@@ -446,10 +448,10 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 		BOOST_TEST(run_and_expect_error(
 			"abc@",
 			"val\nval",
-			ach::highlighter_error{
-				ach::text_location(1, "val\n", 3, 1),
-				ach::text_location(1, "abc@", 3, 1),
-				ach::errors::expected_line_feed
+			mirror::highlighter_error{
+				text::location(1, "val\n", 3, 1),
+				text::location(1, "abc@", 3, 1),
+				mirror::errors::expected_line_feed
 			}));
 	}
 
@@ -458,10 +460,10 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 		BOOST_TEST(run_and_expect_error(
 			"abc xyz\nfoo bar", // extra line of code to make sure remaining characters are checked per line
 			"val 5val",
-			ach::highlighter_error{
-				ach::text_location(1, "val 5val", 4, 4),
-				ach::text_location(1, "abc xyz\n", 4, 0),
-				ach::errors::insufficient_characters
+			mirror::highlighter_error{
+				text::location(1, "val 5val", 4, 4),
+				text::location(1, "abc xyz\n", 4, 0),
+				mirror::errors::insufficient_characters
 			}));
 	}
 
@@ -470,10 +472,10 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 		BOOST_TEST(run_and_expect_error(
 			"abc xyz\nfoo bar",
 			"val 123456789012345678901234567890val",
-			ach::highlighter_error{
-				ach::text_location(1, "val 123456789012345678901234567890val", 4, 30),
-				ach::text_location(1, "abc xyz\n", 4, 0),
-				ach::errors::invalid_number
+			mirror::highlighter_error{
+				text::location(1, "val 123456789012345678901234567890val", 4, 30),
+				text::location(1, "abc xyz\n", 4, 0),
+				mirror::errors::invalid_number
 			}));
 	}
 
@@ -482,10 +484,10 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 		BOOST_TEST(run_and_expect_error(
 			"xyz + 'a\tb\bc",
 			"val + chr",
-			ach::highlighter_error{
-				ach::text_location(1, "val + chr", 6, 3),
-				ach::text_location(1, "xyz + 'a\tb\bc", 6, 0),
-				ach::errors::expected_quoted
+			mirror::highlighter_error{
+				text::location(1, "val + chr", 6, 3),
+				text::location(1, "xyz + 'a\tb\bc", 6, 0),
+				mirror::errors::expected_quoted
 			}));
 	}
 
@@ -494,10 +496,10 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 		BOOST_TEST(run_and_expect_error(
 			"@ # $",
 			"@ # $0",
-			ach::highlighter_error{
-				ach::text_location(1, "@ # $0", 5, 1),
-				ach::text_location(1, "@ # $", 5, 0),
-				ach::errors::expected_span_class
+			mirror::highlighter_error{
+				text::location(1, "@ # $0", 5, 1),
+				text::location(1, "@ # $", 5, 0),
+				mirror::errors::expected_span_class
 			}));
 	}
 
@@ -506,10 +508,10 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 		BOOST_TEST(run_and_expect_error(
 			"@ # $",
 			"@ # $0!",
-			ach::highlighter_error{
-				ach::text_location(1, "@ # $0!", 5, 1),
-				ach::text_location(1, "@ # $", 5, 0),
-				ach::errors::expected_span_class
+			mirror::highlighter_error{
+				text::location(1, "@ # $0!", 5, 1),
+				text::location(1, "@ # $", 5, 0),
+				mirror::errors::expected_span_class
 			}));
 	}
 

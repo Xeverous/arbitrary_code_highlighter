@@ -1,10 +1,10 @@
-#include <ach/detail/color_tokenizer.hpp>
-#include <ach/detail/text_utils.hpp>
-#include <ach/errors.hpp>
+#include <ach/mirror/color_tokenizer.hpp>
+#include <ach/mirror/errors.hpp>
+#include <ach/text/utils.hpp>
 
 #include <charconv>
 
-namespace ach::detail {
+namespace ach::mirror {
 
 color_token color_tokenizer::next_token(color_options options)
 {
@@ -19,8 +19,8 @@ color_token color_tokenizer::next_token(color_options options)
 	}
 
 	const char next_char = *c;
-	if (is_alpha_or_underscore(next_char)) {
-		const text_location extracted_text = extractor.extract_alphas_underscores();
+	if (text::is_alpha_or_underscore(next_char)) {
+		const text::location extracted_text = extractor.extract_alphas_underscores();
 		const std::string_view identifier = extracted_text.str();
 
 		if (identifier == options.num_class) {
@@ -41,9 +41,9 @@ color_token color_tokenizer::next_token(color_options options)
 
 		return color_token{identifier_span{identifier}, extracted_text};
 	}
-	else if (is_digit(next_char)) {
-		const text_location extracted_digits = extractor.extract_digits();
-		text_location extracted_name = extractor.extract_alphas_underscores();
+	else if (text::is_digit(next_char)) {
+		const text::location extracted_digits = extractor.extract_digits();
+		text::location extracted_name = extractor.extract_alphas_underscores();
 
 		const auto num_str = extracted_digits.str();
 		std::size_t num = 0;
@@ -51,7 +51,7 @@ color_token color_tokenizer::next_token(color_options options)
 			return color_token{invalid_token{errors::invalid_number}, extracted_digits};
 		}
 
-		std::optional<css_class> class_ = css_class{extracted_name.str()};
+		std::optional<web::css_class> class_ = web::css_class{extracted_name.str()};
 		if (extracted_name.str().empty()) {
 			if (extractor.peek_next_char() == options.empty_token_char) {
 				extracted_name = extractor.extract_n_characters(1);
@@ -65,12 +65,12 @@ color_token color_tokenizer::next_token(color_options options)
 		if (num == 0) {
 			return color_token{
 				line_delimited_span{class_},
-				text_location::merge(extracted_digits, extracted_name)};
+				text::location::merge(extracted_digits, extracted_name)};
 		}
 
 		return color_token{
 			fixed_length_span{class_, num, extracted_name, extracted_digits},
-			text_location::merge(extracted_digits, extracted_name)};
+			text::location::merge(extracted_digits, extracted_name)};
 	}
 	else if (next_char == '\n') {
 		return color_token{end_of_line{}, extractor.extract_n_characters(1)};
@@ -80,7 +80,7 @@ color_token color_tokenizer::next_token(color_options options)
 	}
 
 	// unknown character - treat as a symbol token
-	const text_location extracted_symbol = extractor.extract_n_characters(1);
+	const text::location extracted_symbol = extractor.extract_n_characters(1);
 	return color_token{symbol{extracted_symbol.str().front()}, extracted_symbol};
 }
 

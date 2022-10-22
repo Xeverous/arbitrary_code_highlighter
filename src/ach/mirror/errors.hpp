@@ -1,6 +1,6 @@
 #pragma once
 
-namespace ach::errors {
+namespace ach::mirror::errors {
 
 	// errors against code
 	constexpr auto expected_identifier = "expected identifier";

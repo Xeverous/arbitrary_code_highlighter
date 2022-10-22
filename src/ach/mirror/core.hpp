@@ -1,14 +1,14 @@
 #pragma once
 
-#include <ach/text_location.hpp>
-#include <ach/color_options.hpp>
+#include <ach/text/location.hpp>
+#include <ach/mirror/color_options.hpp>
 
 #include <string>
 #include <string_view>
 #include <variant>
 #include <iosfwd>
 
-namespace ach {
+namespace ach::mirror {
 
 struct generation_options
 {
@@ -25,9 +25,9 @@ struct highlighter_options
 
 struct highlighter_error
 {
-	text_location color_location;
-	text_location code_location;
-	std::string_view reason; // should be initialized
+	text::location color_location;
+	text::location code_location;
+	std::string_view reason; // should not be empty
 	std::string_view extra_reason = {};
 };
 
@@ -36,7 +36,7 @@ std::variant<std::string, highlighter_error> run_highlighter(
 	std::string_view color,
 	const highlighter_options& options = {});
 
-std::ostream& operator<<(std::ostream& os, ach::text_location tl);
-std::ostream& operator<<(std::ostream& os, const ach::highlighter_error& error);
+std::ostream& operator<<(std::ostream& os, text::location tl);
+std::ostream& operator<<(std::ostream& os, const mirror::highlighter_error& error);
 
 }

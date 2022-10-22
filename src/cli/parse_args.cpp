@@ -1,6 +1,6 @@
 #include "parse_args.hpp"
 
-#include <ach/version.hpp>
+#include <ach/utility/version.hpp>
 
 #include <boost/program_options.hpp>
 #include <boost/optional.hpp>
@@ -15,7 +15,8 @@ namespace
 
 void print_help(const boost::program_options::options_description& options)
 {
-	std::cout << ach::program_description;
+	std::cout << ach::utility::program_description << "\n"
+		"NOTE: the CLI front of the program is NOT finished and does nothing";
 
 	options.print(std::cout);
 
@@ -92,4 +93,3 @@ int run(int argc, char* argv[])
 
 	return EXIT_SUCCESS;
 }
-

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace ach {
+namespace ach::utility {
 
 constexpr auto program_description =
 	"Arbitrary Code Highlighter - embed arbitrary code in HTML <span> tags with\n"
@@ -10,7 +10,7 @@ constexpr auto program_description =
 
 }
 
-namespace ach::version {
+namespace ach::utility::version {
 
 constexpr int major = 1;
 constexpr int minor = 3;

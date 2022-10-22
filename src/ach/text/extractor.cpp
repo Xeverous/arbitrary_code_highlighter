@@ -1,12 +1,12 @@
-#include <ach/text_extractor.hpp>
-#include <ach/detail/text_utils.hpp>
+#include <ach/text/extractor.hpp>
+#include <ach/text/utils.hpp>
 
 #include <algorithm>
 #include <cassert>
 
-namespace ach {
+namespace ach::text {
 
-bool text_extractor::load_next_line()
+bool extractor::load_next_line()
 {
 	const auto first = _remaining_text.data();
 	const auto last = _remaining_text.data() + _remaining_text.size();
@@ -31,7 +31,7 @@ bool text_extractor::load_next_line()
 }
 
 template <typename Predicate>
-text_location text_extractor::extract_by(Predicate pred)
+location extractor::extract_by(Predicate pred)
 {
 	const auto text = remaining_line_str();
 	const auto first = text.data();
@@ -40,47 +40,47 @@ text_location text_extractor::extract_by(Predicate pred)
 	const auto it = std::find_if_not(first, last, pred);
 	const auto length = it - first;
 
-	const auto result = text_location(_line_number, _current_line, _column_number, length);
+	const auto result = location(_line_number, _current_line, _column_number, length);
 	skip(length);
 	return result;
 }
 
-text_location text_extractor::extract_identifier()
+location extractor::extract_identifier()
 {
 	std::optional<char> c = peek_next_char();
-	if (!c || detail::is_digit(*c))
+	if (!c || is_digit(*c))
 		return current_location();
 
-	return extract_by(detail::is_alnum_or_underscore);
+	return extract_by(is_alnum_or_underscore);
 }
 
-text_location text_extractor::extract_alphas_underscores()
+location extractor::extract_alphas_underscores()
 {
-	return extract_by(detail::is_alpha_or_underscore);
+	return extract_by(is_alpha_or_underscore);
 }
 
-text_location text_extractor::extract_digits()
+location extractor::extract_digits()
 {
-	return extract_by(detail::is_digit);
+	return extract_by(is_digit);
 }
 
-text_location text_extractor::extract_n_characters(std::size_t n)
+location extractor::extract_n_characters(std::size_t n)
 {
 	if (n > remaining_line_str().size()) {
 		return current_location();
 	}
 
-	const auto result = text_location(_line_number, _current_line, _column_number, n);
+	const auto result = location(_line_number, _current_line, _column_number, n);
 	skip(n);
 	return result;
 }
 
-text_location text_extractor::extract_until_end_of_line()
+location extractor::extract_until_end_of_line()
 {
 	return extract_by([](char c) { return c != '\n'; });
 }
 
-text_location text_extractor::extract_quoted(char quote, char escape)
+location extractor::extract_quoted(char quote, char escape)
 {
 	if (peek_next_char() != quote) {
 		return current_location();
@@ -126,7 +126,7 @@ text_location text_extractor::extract_quoted(char quote, char escape)
 	}
 
 	const auto length = 1 + (it - first); // 1 is the starting quote, rest is the loop
-	const auto result = text_location(_line_number, _current_line, _column_number, length);
+	const auto result = location(_line_number, _current_line, _column_number, length);
 	skip(length);
 	return result;
 }

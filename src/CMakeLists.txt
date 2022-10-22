@@ -2,10 +2,10 @@
 # core library target
 
 add_library(ach_core STATIC
-	ach/detail/color_tokenizer.cpp
-	ach/detail/html_builder.cpp
-	ach/text_extractor.cpp
-	ach/core.cpp
+	ach/text/extractor.cpp
+	ach/mirror/color_tokenizer.cpp
+	ach/mirror/core.cpp
+	ach/web/html_builder.cpp
 )
 
 target_include_directories(ach_core

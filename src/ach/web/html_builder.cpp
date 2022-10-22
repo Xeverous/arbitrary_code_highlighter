@@ -1,7 +1,8 @@
-#include <ach/detail/html_builder.hpp>
+#include <ach/web/html_builder.hpp>
+
 #include <cassert>
 
-namespace ach::detail {
+namespace ach::web {
 
 void html_builder::open_table(std::size_t lines, std::string_view code_class)
 {

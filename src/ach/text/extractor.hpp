@@ -1,17 +1,17 @@
 #pragma once
 
-#include <ach/text_location.hpp>
+#include <ach/text/location.hpp>
 
 #include <string_view>
 #include <optional>
 #include <cassert>
 
-namespace ach {
+namespace ach::text {
 
-class text_extractor
+class extractor
 {
 public:
-	text_extractor(std::string_view text)
+	extractor(std::string_view text)
 	: _remaining_text(text)
 	{
 		// ignore if loading fails, invariants will be preserved
@@ -32,22 +32,22 @@ public:
 		return _remaining_text.empty() && remaining_line_str().empty();
 	}
 
-	text_location remaining_line_text() const noexcept {
-		return text_location(_line_number, _current_line, _column_number, _current_line.size() - _column_number);
+	location remaining_line_text() const noexcept {
+		return location(_line_number, _current_line, _column_number, _current_line.size() - _column_number);
 	}
 
 	// 0-length match, also returned as an error when extracting fails
-	text_location current_location() const noexcept {
-		return text_location(_line_number, _current_line, _column_number, 0);
+	location current_location() const noexcept {
+		return location(_line_number, _current_line, _column_number, 0);
 	}
 
 	// if any of these fails, a location with length() == 0 should be returned
-	text_location extract_identifier();
-	text_location extract_alphas_underscores();
-	text_location extract_digits();
-	text_location extract_n_characters(std::size_t n);
-	text_location extract_until_end_of_line();
-	text_location extract_quoted(char quote, char escape);
+	location extract_identifier();
+	location extract_alphas_underscores();
+	location extract_digits();
+	location extract_n_characters(std::size_t n);
+	location extract_until_end_of_line();
+	location extract_quoted(char quote, char escape);
 
 	[[nodiscard]] bool load_next_line();
 
@@ -66,7 +66,7 @@ private:
 
 	// implemented and instantiated only in source
 	template <typename Predicate>
-	text_location extract_by(Predicate pred);
+	location extract_by(Predicate pred);
 
 	std::string_view _remaining_text;
 	std::string_view _current_line;

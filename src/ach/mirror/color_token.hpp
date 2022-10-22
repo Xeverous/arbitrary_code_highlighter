@@ -1,34 +1,34 @@
 #pragma once
 
-#include <ach/text_location.hpp>
-#include <ach/detail/html_types.hpp>
+#include <ach/text/location.hpp>
+#include <ach/web/types.hpp>
 
 #include <variant>
 #include <optional>
 
-namespace ach::detail {
+namespace ach::mirror {
 
 struct identifier_span
 {
-	css_class class_;
+	web::css_class class_;
 };
 
 struct fixed_length_span
 {
-	std::optional<css_class> class_;
+	std::optional<web::css_class> class_;
 	std::size_t length;
-	text_location name_origin;
-	text_location length_origin;
+	text::location name_origin;
+	text::location length_origin;
 };
 
 struct line_delimited_span
 {
-	std::optional<css_class> class_;
+	std::optional<web::css_class> class_;
 };
 
 struct number
 {
-	css_class class_;
+	web::css_class class_;
 };
 
 struct symbol
@@ -40,8 +40,8 @@ struct empty_token {};
 
 struct quoted_span
 {
-	css_class primary_class;
-	css_class escape_class;
+	web::css_class primary_class;
+	web::css_class escape_class;
 	char delimeter;
 	char escape;
 };
@@ -74,7 +74,7 @@ using color_token_variant = std::variant<
 struct color_token
 {
 	color_token_variant token;
-	text_location origin;
+	text::location origin;
 };
 
 }

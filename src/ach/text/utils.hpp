@@ -2,7 +2,7 @@
 
 #include <string_view>
 
-namespace ach::detail {
+namespace ach::text {
 
 constexpr bool is_digit(char c) noexcept
 {
