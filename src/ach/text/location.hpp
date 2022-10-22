@@ -9,7 +9,10 @@ class location
 {
 public:
 	location(std::size_t line_number, std::string_view line, std::size_t first_column, std::size_t length)
-	: _line_number(line_number), _line(line), _first_column(first_column), _length(length) {}
+	: _line_number(line_number), _line(line), _first_column(first_column), _length(length)
+	{
+		assert(first_column + length <= line.size());
+	}
 
 	std::string_view line() const noexcept { return _line; }
 	std::size_t line_number() const noexcept { return _line_number; }
