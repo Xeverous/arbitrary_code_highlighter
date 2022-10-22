@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 				}
 				else {
 					BOOST_FAIL("test bug: non-exhaustive operation implementation");
-					return ach::text::location(0, {}, 0, 0);
+					return ach::text::location({}, 0, 0, 0);
 				}
 			}();
 

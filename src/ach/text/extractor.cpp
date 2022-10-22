@@ -40,7 +40,7 @@ location extractor::extract_by(Predicate pred)
 	const auto it = std::find_if_not(first, last, pred);
 	const auto length = it - first;
 
-	const auto result = location(_line_number, _current_line, _column_number, length);
+	const auto result = location(_current_line, _line_number, _column_number, length);
 	skip(length);
 	return result;
 }
@@ -70,7 +70,7 @@ location extractor::extract_n_characters(std::size_t n)
 		return current_location();
 	}
 
-	const auto result = location(_line_number, _current_line, _column_number, n);
+	const auto result = location(_current_line, _line_number, _column_number, n);
 	skip(n);
 	return result;
 }
@@ -126,7 +126,7 @@ location extractor::extract_quoted(char quote, char escape)
 	}
 
 	const auto length = 1 + (it - first); // 1 is the starting quote, rest is the loop
-	const auto result = location(_line_number, _current_line, _column_number, length);
+	const auto result = location(_current_line, _line_number, _column_number, length);
 	skip(length);
 	return result;
 }

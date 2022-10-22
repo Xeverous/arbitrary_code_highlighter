@@ -8,8 +8,8 @@ namespace ach::text {
 class location
 {
 public:
-	location(std::size_t line_number, std::string_view line, std::size_t first_column, std::size_t length)
-	: _line_number(line_number), _line(line), _first_column(first_column), _length(length)
+	location(std::string_view line, std::size_t line_number, std::size_t first_column, std::size_t length)
+	: _line(line), _line_number(line_number), _first_column(first_column), _length(length)
 	{
 		assert(first_column + length <= line.size());
 	}
@@ -32,12 +32,12 @@ public:
 		assert(lhs.line_number() == rhs.line_number());
 		assert(lhs.line() == rhs.line());
 		assert(lhs.first_column() + lhs.length() == rhs.first_column());
-		return location(lhs.line_number(), lhs.line(), lhs.first_column(), lhs.length() + rhs.length());
+		return location(lhs.line(), lhs.line_number(), lhs.first_column(), lhs.length() + rhs.length());
 	}
 
 private:
-	std::size_t _line_number = 0;
 	std::string_view _line;
+	std::size_t _line_number = 0;
 	std::size_t _first_column = 0;
 	std::size_t _length = 0;
 };

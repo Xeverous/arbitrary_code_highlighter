@@ -34,12 +34,12 @@ public:
 	}
 
 	location remaining_line_text() const noexcept {
-		return location(_line_number, _current_line, _column_number, _current_line.size() - _column_number);
+		return location(_current_line, _line_number, _column_number, _current_line.size() - _column_number);
 	}
 
 	// 0-length match, also returned as an error when extracting fails
 	location current_location() const noexcept {
-		return location(_line_number, _current_line, _column_number, 0);
+		return location(_current_line, _line_number, _column_number, 0);
 	}
 
 	// if any of these fails, a location with length() == 0 should be returned
