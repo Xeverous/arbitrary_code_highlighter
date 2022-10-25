@@ -10,6 +10,7 @@ find_package(Boost 1.65 REQUIRED
 
 add_executable(ach_test
 	main.cpp
+	algorithm_tests.cpp
 	text_extractor_tests.cpp
 	mirror_tests.cpp
 )

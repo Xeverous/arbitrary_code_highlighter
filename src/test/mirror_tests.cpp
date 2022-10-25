@@ -335,6 +335,21 @@ BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE(highlighter_negative)
 
+	BOOST_AUTO_TEST_CASE(invalid_css_class)
+	{
+		mirror::highlighter_options options;
+		options.generation.valid_css_classes = "keyword;param";
+		BOOST_TEST(run_and_expect_error(
+			"one+two+three",
+			"keyword+param+three",
+			mirror::highlighter_error{
+				text::location("keyword+param+three", 0, 14, 5),
+				text::location("one+two+three", 0, 8, 0),
+				mirror::errors::invalid_css_class
+			},
+			options));
+	}
+
 	BOOST_AUTO_TEST_CASE(exhausted_color)
 	{
 		BOOST_TEST(run_and_expect_error(

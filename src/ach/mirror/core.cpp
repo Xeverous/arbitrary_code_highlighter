@@ -6,13 +6,13 @@
 #include <ach/web/html_builder.hpp>
 #include <ach/text/utils.hpp>
 #include <ach/utility/visitor.hpp>
+#include <ach/utility/algorithm.hpp>
 
 #include <cassert>
 #include <optional>
 #include <variant>
 #include <utility>
 #include <ostream>
-#include <algorithm>
 #include <functional>
 
 namespace ach::mirror {
@@ -113,32 +113,36 @@ result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 	}, color_tn.token);
 }
 
-std::optional<web::css_class> find_invalid_css_class(web::css_class class_, std::string_view valid_classes)
+bool is_valid_css_class(web::css_class class_, std::string_view valid_classes)
 {
-	const auto it = std::search(
+	return utility::search_whole_word(
 		valid_classes.begin(),
 		valid_classes.end(),
-		std::default_searcher(class_.name.begin(), class_.name.end()));
-
-	if (it == valid_classes.end())
-		return class_;
-	else
-		return std::nullopt;
+		class_.name.begin(),
+		class_.name.end(),
+		text::is_alpha_or_underscore) != valid_classes.end();
 }
 
 std::optional<web::css_class> find_invalid_css_class(web::simple_span_element el, std::string_view valid_classes)
 {
-	assert(el.class_.has_value());
-	return find_invalid_css_class(*el.class_, valid_classes);
+	if (!el.class_.has_value())
+		return std::nullopt;
+
+	if (is_valid_css_class(*el.class_, valid_classes))
+		return std::nullopt;
+	else
+		return el.class_;
 }
 
 std::optional<web::css_class> find_invalid_css_class(web::quote_span_element el, std::string_view valid_classes)
 {
-	std::optional<web::css_class> invalid_class = find_invalid_css_class(el.primary_class, valid_classes);
-	if (invalid_class)
-		return invalid_class;
+	if (!is_valid_css_class(el.primary_class, valid_classes))
+		return el.primary_class;
 
-	return find_invalid_css_class(el.escape_class, valid_classes);
+	if (!is_valid_css_class(el.escape_class, valid_classes))
+		return el.escape_class;
+
+	return std::nullopt;
 }
 
 }
@@ -161,10 +165,10 @@ std::variant<std::string, highlighter_error> run_highlighter(
 
 	bool done = false;
 	while (!done) {
-		color_token color_tn = color_tr.next_token(options.color);
-		result_t result = process_color_token(color_tn, code_tr);
+		const color_token color_tn = color_tr.next_token(options.color);
+		const text::location last_code_location = code_tr.current_location();
 
-		auto maybe_error = std::visit(utility::visitor{
+		auto visitor = utility::visitor{
 			[](highlighter_error error) -> std::optional<highlighter_error> {
 				return error;
 			},
@@ -176,7 +180,7 @@ std::variant<std::string, highlighter_error> run_highlighter(
 					if (invalid_class)
 						return highlighter_error{
 							color_tn.origin,
-							code_tr.current_location(),
+							last_code_location,
 							errors::invalid_css_class,
 							(*invalid_class).name};
 				}
@@ -188,8 +192,9 @@ std::variant<std::string, highlighter_error> run_highlighter(
 				done = true; // exit the loop when color input ends
 				return std::nullopt;
 			}
-		}, std::move(result));
+		};
 
+		auto maybe_error = std::visit(visitor, process_color_token(color_tn, code_tr));
 		if (maybe_error)
 			return *maybe_error;
 	}
@@ -217,7 +222,7 @@ std::ostream& operator<<(std::ostream& os, text::location tl)
 	if (tl.whole_line().empty() || tl.whole_line().back() != '\n')
 		os << '\n';
 
-	assert(tl.range().column < tl.whole_line().size());
+	assert(tl.range().column + tl.range().length <= tl.whole_line().size());
 
 	// match the whitespace character used - tabs have different length
 	for (auto i = 0u; i < tl.range().column; ++i) {
