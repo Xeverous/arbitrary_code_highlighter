@@ -1,7 +1,8 @@
 #pragma once
 
-#include <string_view>
 #include <cassert>
+#include <string_view>
+#include <tuple>
 
 namespace ach::text {
 
@@ -10,6 +11,36 @@ struct position
 	std::size_t line = 0;
 	std::size_t column = 0;
 };
+
+constexpr bool operator==(position lhs, position rhs) noexcept
+{
+	return lhs.line == rhs.line && lhs.column == rhs.column;
+}
+
+constexpr bool operator!=(position lhs, position rhs) noexcept
+{
+	return !(lhs == rhs);
+}
+
+constexpr bool operator<(position lhs, position rhs) noexcept
+{
+	return std::tie(lhs.line, lhs.column) < std::tie(rhs.line, rhs.column);
+}
+
+constexpr bool operator>(position lhs, position rhs) noexcept
+{
+	return std::tie(lhs.line, lhs.column) > std::tie(rhs.line, rhs.column);
+}
+
+constexpr bool operator<=(position lhs, position rhs) noexcept
+{
+	return std::tie(lhs.line, lhs.column) <= std::tie(rhs.line, rhs.column);
+}
+
+constexpr bool operator>=(position lhs, position rhs) noexcept
+{
+	return std::tie(lhs.line, lhs.column) >= std::tie(rhs.line, rhs.column);
+}
 
 struct range
 {
@@ -43,13 +74,11 @@ public:
 	}
 
 	location(std::string_view whole_line, std::size_t line_number, std::size_t column, std::size_t length)
-	: m_whole_line(whole_line), m_range{line_number, column, length}
-	{
-		assert(column + length <= whole_line.size());
-	}
+	: location(whole_line, text::range{line_number, column, length}) {}
 
 	std::string_view whole_line() const noexcept { return m_whole_line; }
 	struct range range() const noexcept { return m_range; }
+	bool is_empty() const noexcept { return m_range.length == 0; }
 
 	std::string_view str() const noexcept {
 		if (m_range.length == 0)

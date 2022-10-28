@@ -40,16 +40,19 @@ location extractor::extract_by(Predicate pred)
 	const auto it = std::find_if_not(first, last, pred);
 	const auto length = it - first;
 
-	const auto result = location(_current_line, _line_number, _column_number, length);
-	skip(length);
-	return result;
+	return consume_n_characters(length);
+}
+
+location extractor::extract_non_newline_whitespace()
+{
+	return extract_by(is_non_newline_whitespace);
 }
 
 location extractor::extract_identifier()
 {
 	std::optional<char> c = peek_next_char();
 	if (!c || is_digit(*c))
-		return current_location();
+		return no_match();
 
 	return extract_by(is_alnum_or_underscore);
 }
@@ -67,12 +70,10 @@ location extractor::extract_digits()
 location extractor::extract_n_characters(std::size_t n)
 {
 	if (n > remaining_line_str().size()) {
-		return current_location();
+		return no_match();
 	}
 
-	const auto result = location(_current_line, _line_number, _column_number, n);
-	skip(n);
-	return result;
+	return consume_n_characters(n);
 }
 
 location extractor::extract_until_end_of_line()
@@ -82,9 +83,8 @@ location extractor::extract_until_end_of_line()
 
 location extractor::extract_quoted(char quote, char escape)
 {
-	if (peek_next_char() != quote) {
-		return current_location();
-	}
+	if (peek_next_char() != quote)
+		return no_match();
 
 	const std::string_view remaining = [this]() {
 		std::string_view text = remaining_line_str();
@@ -117,18 +117,23 @@ location extractor::extract_quoted(char quote, char escape)
 		}
 	}
 
-	if (inside_escape) { // remaining text finished before escape was fullfilled - this is an error
-		return current_location();
-	}
+	if (inside_escape) // remaining text finished before escape was fullfilled - this is an error
+		return no_match();
 
-	if (!closing_quote_found) {
-		return current_location();
-	}
+	if (!closing_quote_found)
+		return no_match();
 
 	const auto length = 1 + (it - first); // 1 is the starting quote, rest is the loop
-	const auto result = location(_current_line, _line_number, _column_number, length);
-	skip(length);
-	return result;
+	return consume_n_characters(length);
+}
+
+location extractor::extract_match(std::string_view text_to_match)
+{
+	if (starts_with(remaining_line_str(), text_to_match)) {
+		return consume_n_characters(text_to_match.size());
+	}
+
+	return no_match();
 }
 
 }

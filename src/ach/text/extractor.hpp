@@ -16,15 +16,14 @@ public:
 	{
 		// ignore if loading fails, invariants will be preserved
 		(void) load_next_line();
-		_line_number = 0;
+		_line_number = 0; // first line: revert line increment
 	}
 
 	std::optional<char> peek_next_char() const noexcept {
 		const auto remaining = remaining_line_str();
 
-		if (remaining.empty()) {
+		if (remaining.empty())
 			return std::nullopt;
-		}
 
 		return remaining.front();
 	}
@@ -37,25 +36,34 @@ public:
 		return location(_current_line, _line_number, _column_number, _current_line.size() - _column_number);
 	}
 
-	// 0-length match, also returned as an error when extracting fails
 	location current_location() const noexcept {
-		return location(_current_line, _line_number, _column_number, 0);
+		return no_match();
 	}
 
-	// if any of these fails, a location with length() == 0 should be returned
+	// if any of these fails, a location with length == 0 should be returned
+	location extract_non_newline_whitespace();
 	location extract_identifier();
 	location extract_alphas_underscores();
 	location extract_digits();
 	location extract_n_characters(std::size_t n);
 	location extract_until_end_of_line();
 	location extract_quoted(char quote, char escape);
+	location extract_match(std::string_view text_to_match);
 
 	[[nodiscard]] bool load_next_line();
 
 private:
-	void skip(std::size_t n) {
+	location no_match() const noexcept
+	{
+		return location(_current_line, _line_number, _column_number, 0);
+	}
+
+	location consume_n_characters(std::size_t n)
+	{
 		assert(n <= remaining_line_str().size());
+		auto col = _column_number;
 		_column_number += n;
+		return location(_current_line, _line_number, col, n);
 	}
 
 	std::string_view remaining_line_str() const noexcept {

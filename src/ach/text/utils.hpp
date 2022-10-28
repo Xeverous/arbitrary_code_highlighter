@@ -4,6 +4,16 @@
 
 namespace ach::text {
 
+constexpr bool is_non_newline_whitespace(char c) noexcept
+{
+	return c == ' ' || c == '\t' || c == '\r' || c == '\f' || c == '\v';
+}
+
+constexpr bool is_whitespace(char c) noexcept
+{
+	return c == '\n' || is_non_newline_whitespace(c);
+}
+
 constexpr bool is_digit(char c) noexcept
 {
 	return '0' <= c && c <= '9';
@@ -27,6 +37,35 @@ constexpr bool is_alpha_or_underscore(char c) noexcept
 constexpr bool is_alnum_or_underscore(char c) noexcept
 {
 	return is_alnum(c) || c == '_';
+}
+
+constexpr bool starts_with(std::string_view source, std::string_view fragment) noexcept
+{
+	if (source.size() < fragment.size())
+		return false;
+
+	for (std::string_view::size_type i = 0; i < fragment.size(); ++i)
+		if (source[i] != fragment[i])
+			return false;
+
+	return true;
+}
+
+constexpr bool ends_with(std::string_view source, std::string_view fragment) noexcept
+{
+	if (source.size() < fragment.size())
+		return false;
+
+	for (std::string_view::size_type i = 0; i < fragment.size(); ++i)
+		if (*(source.rbegin() + i) != *(fragment.rbegin() + i))
+			return false;
+
+	return true;
+}
+
+constexpr bool contains(std::string_view source, std::string_view fragment) noexcept
+{
+	return source.find(fragment) != std::string_view::npos;
 }
 
 constexpr std::size_t count_lines(std::string_view str) noexcept
