@@ -32,38 +32,38 @@ public:
 		return _remaining_text.empty() && remaining_line_str().empty();
 	}
 
-	location remaining_line_text() const noexcept {
-		return location(_current_line, _line_number, _column_number, _current_line.size() - _column_number);
+	located_span remaining_line_text() const noexcept {
+		return located_span(_current_line, _line_number, _column_number, _current_line.size() - _column_number);
 	}
 
-	location current_location() const noexcept {
+	located_span current_location() const noexcept {
 		return no_match();
 	}
 
 	// if any of these fails, a location with length == 0 should be returned
-	location extract_non_newline_whitespace();
-	location extract_identifier();
-	location extract_alphas_underscores();
-	location extract_digits();
-	location extract_n_characters(std::size_t n);
-	location extract_until_end_of_line();
-	location extract_quoted(char quote, char escape);
-	location extract_match(std::string_view text_to_match);
+	located_span extract_non_newline_whitespace();
+	located_span extract_identifier();
+	located_span extract_alphas_underscores();
+	located_span extract_digits();
+	located_span extract_n_characters(std::size_t n);
+	located_span extract_until_end_of_line();
+	located_span extract_quoted(char quote, char escape);
+	located_span extract_match(std::string_view text_to_match);
 
 	[[nodiscard]] bool load_next_line();
 
 private:
-	location no_match() const noexcept
+	located_span no_match() const noexcept
 	{
-		return location(_current_line, _line_number, _column_number, 0);
+		return located_span(_current_line, _line_number, _column_number, 0);
 	}
 
-	location consume_n_characters(std::size_t n)
+	located_span consume_n_characters(std::size_t n)
 	{
 		assert(n <= remaining_line_str().size());
 		auto col = _column_number;
 		_column_number += n;
-		return location(_current_line, _line_number, col, n);
+		return located_span(_current_line, _line_number, col, n);
 	}
 
 	std::string_view remaining_line_str() const noexcept {
@@ -75,7 +75,7 @@ private:
 
 	// implemented and instantiated only in source
 	template <typename Predicate>
-	location extract_by(Predicate pred);
+	located_span extract_by(Predicate pred);
 
 	std::string_view _remaining_text;
 	std::string_view _current_line;

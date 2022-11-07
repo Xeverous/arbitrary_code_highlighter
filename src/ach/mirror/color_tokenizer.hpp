@@ -15,7 +15,7 @@ public:
 	color_token next_token(color_options options);
 
 	[[nodiscard]] bool has_reached_end() const noexcept { return extractor.has_reached_end(); }
-	text::location current_location() const noexcept { return extractor.current_location(); }
+	text::located_span current_location() const noexcept { return extractor.current_location(); }
 
 private:
 	text::extractor extractor;

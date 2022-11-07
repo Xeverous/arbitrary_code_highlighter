@@ -25,8 +25,8 @@ struct highlighter_options
 
 struct highlighter_error
 {
-	text::location color_location;
-	text::location code_location;
+	text::located_span color_location;
+	text::located_span code_location;
 	std::string_view reason; // should not be empty
 	std::string_view extra_reason = {};
 };
@@ -36,7 +36,7 @@ std::variant<std::string, highlighter_error> run_highlighter(
 	std::string_view color,
 	const highlighter_options& options = {});
 
-std::ostream& operator<<(std::ostream& os, text::location tl);
+std::ostream& operator<<(std::ostream& os, text::located_span ls);
 std::ostream& operator<<(std::ostream& os, const mirror::highlighter_error& error);
 
 }

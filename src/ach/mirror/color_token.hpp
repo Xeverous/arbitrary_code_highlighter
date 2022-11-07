@@ -17,8 +17,8 @@ struct fixed_length_span
 {
 	std::optional<web::css_class> class_;
 	std::size_t length;
-	text::location name_origin;
-	text::location length_origin;
+	text::located_span name_origin;
+	text::located_span length_origin;
 };
 
 struct line_delimited_span
@@ -74,7 +74,7 @@ using color_token_variant = std::variant<
 struct color_token
 {
 	color_token_variant token;
-	text::location origin;
+	text::located_span origin;
 };
 
 }

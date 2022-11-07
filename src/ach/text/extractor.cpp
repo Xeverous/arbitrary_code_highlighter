@@ -31,7 +31,7 @@ bool extractor::load_next_line()
 }
 
 template <typename Predicate>
-location extractor::extract_by(Predicate pred)
+located_span extractor::extract_by(Predicate pred)
 {
 	const auto text = remaining_line_str();
 	const auto first = text.data();
@@ -43,12 +43,12 @@ location extractor::extract_by(Predicate pred)
 	return consume_n_characters(length);
 }
 
-location extractor::extract_non_newline_whitespace()
+located_span extractor::extract_non_newline_whitespace()
 {
 	return extract_by(is_non_newline_whitespace);
 }
 
-location extractor::extract_identifier()
+located_span extractor::extract_identifier()
 {
 	std::optional<char> c = peek_next_char();
 	if (!c || is_digit(*c))
@@ -57,17 +57,17 @@ location extractor::extract_identifier()
 	return extract_by(is_alnum_or_underscore);
 }
 
-location extractor::extract_alphas_underscores()
+located_span extractor::extract_alphas_underscores()
 {
 	return extract_by(is_alpha_or_underscore);
 }
 
-location extractor::extract_digits()
+located_span extractor::extract_digits()
 {
 	return extract_by(is_digit);
 }
 
-location extractor::extract_n_characters(std::size_t n)
+located_span extractor::extract_n_characters(std::size_t n)
 {
 	if (n > remaining_line_str().size()) {
 		return no_match();
@@ -76,12 +76,12 @@ location extractor::extract_n_characters(std::size_t n)
 	return consume_n_characters(n);
 }
 
-location extractor::extract_until_end_of_line()
+located_span extractor::extract_until_end_of_line()
 {
 	return extract_by([](char c) { return c != '\n'; });
 }
 
-location extractor::extract_quoted(char quote, char escape)
+located_span extractor::extract_quoted(char quote, char escape)
 {
 	if (peek_next_char() != quote)
 		return no_match();
@@ -127,7 +127,7 @@ location extractor::extract_quoted(char quote, char escape)
 	return consume_n_characters(length);
 }
 
-location extractor::extract_match(std::string_view text_to_match)
+located_span extractor::extract_match(std::string_view text_to_match)
 {
 	if (starts_with(remaining_line_str(), text_to_match)) {
 		return consume_n_characters(text_to_match.size());

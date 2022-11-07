@@ -24,7 +24,7 @@ result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 {
 	return std::visit(utility::visitor{
 		[&](identifier_span id_span) -> result_t {
-			const text::location extracted_identifier = code_tr.extract_identifier();
+			const text::located_span extracted_identifier = code_tr.extract_identifier();
 
 			if (extracted_identifier.str().empty()) {
 				return highlighter_error{color_tn.origin, extracted_identifier, errors::expected_identifier};
@@ -33,7 +33,7 @@ result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 			return web::simple_span_element{web::html_text{extracted_identifier.str()}, id_span.class_};
 		},
 		[&](fixed_length_span fl_span) -> result_t {
-			const text::location extracted_characters = code_tr.extract_n_characters(fl_span.length);
+			const text::located_span extracted_characters = code_tr.extract_n_characters(fl_span.length);
 			const auto extracted_chars = extracted_characters.str().size();
 			assert(extracted_chars <= fl_span.length);
 
@@ -44,12 +44,12 @@ result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 			return web::simple_span_element{web::html_text{extracted_characters.str()}, fl_span.class_};
 		},
 		[&](line_delimited_span ld_span) -> result_t {
-			const text::location extracted_text = code_tr.extract_until_end_of_line();
+			const text::located_span extracted_text = code_tr.extract_until_end_of_line();
 			// no if extracted_text.str().empty() here - we want to allow empty extractions
 			return web::simple_span_element{web::html_text{extracted_text.str()}, ld_span.class_};
 		},
 		[&](symbol s) -> result_t {
-			const text::location extracted_symbol = code_tr.extract_n_characters(1);
+			const text::located_span extracted_symbol = code_tr.extract_n_characters(1);
 
 			if (extracted_symbol.str().empty()) {
 				return highlighter_error{color_tn.origin, extracted_symbol, errors::expected_symbol};
@@ -64,7 +64,7 @@ result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 			return web::simple_span_element{web::html_text{extracted_symbol.str()}, std::nullopt};
 		},
 		[&](number num) -> result_t {
-			const text::location extracted_digits = code_tr.extract_digits();
+			const text::located_span extracted_digits = code_tr.extract_digits();
 
 			if (extracted_digits.str().empty()) {
 				return highlighter_error{color_tn.origin, extracted_digits, errors::expected_number};
@@ -76,7 +76,7 @@ result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 			return web::simple_span_element{web::html_text{}, std::nullopt};
 		},
 		[&](quoted_span span) -> result_t {
-			const text::location extracted_text = code_tr.extract_quoted(span.delimeter, span.escape);
+			const text::located_span extracted_text = code_tr.extract_quoted(span.delimeter, span.escape);
 
 			if (extracted_text.str().empty()) {
 				return highlighter_error{color_tn.origin, extracted_text, errors::expected_quoted};
@@ -87,7 +87,7 @@ result_t process_color_token(color_token color_tn, code_tokenizer& code_tr)
 			};
 		},
 		[&](end_of_line) -> result_t {
-			const text::location extracted_char = code_tr.extract_n_characters(1);
+			const text::located_span extracted_char = code_tr.extract_n_characters(1);
 
 			if (extracted_char.str().empty()) {
 				return highlighter_error{color_tn.origin, extracted_char, errors::expected_line_feed};
@@ -166,7 +166,7 @@ std::variant<std::string, highlighter_error> run_highlighter(
 	bool done = false;
 	while (!done) {
 		const color_token color_tn = color_tr.next_token(options.color);
-		const text::location last_code_location = code_tr.current_location();
+		const text::located_span last_code_location = code_tr.current_location();
 
 		auto visitor = utility::visitor{
 			[](highlighter_error error) -> std::optional<highlighter_error> {
@@ -214,25 +214,25 @@ std::variant<std::string, highlighter_error> run_highlighter(
 	return std::move(builder.str());
 }
 
-std::ostream& operator<<(std::ostream& os, text::location tl)
+std::ostream& operator<<(std::ostream& os, text::located_span ls)
 {
 	// index is 0-based, add 1 for human output
-	os << "line " << tl.span().line + 1 << ":\n" << tl.whole_line();
+	os << "line " << ls.span().line + 1 << ":\n" << ls.whole_line();
 
-	if (tl.whole_line().empty() || tl.whole_line().back() != '\n')
+	if (ls.whole_line().empty() || ls.whole_line().back() != '\n')
 		os << '\n';
 
-	assert(tl.span().column + tl.span().length <= tl.whole_line().size());
+	assert(ls.span().column + ls.span().length <= ls.whole_line().size());
 
 	// match the whitespace character used - tabs have different length
-	for (auto i = 0u; i < tl.span().column; ++i) {
-		if (tl.whole_line()[i] == '\t')
+	for (auto i = 0u; i < ls.span().column; ++i) {
+		if (ls.whole_line()[i] == '\t')
 			os << '\t';
 		else
 			os << ' ';
 	}
 
-	const auto highlight_length = tl.str().size();
+	const auto highlight_length = ls.str().size();
 
 	if (highlight_length == 0) {
 		os << '^';

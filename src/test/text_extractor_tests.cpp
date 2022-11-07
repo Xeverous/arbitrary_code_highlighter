@@ -14,7 +14,7 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 		ach::text::extractor te("");
 		BOOST_TEST(!te.peek_next_char().has_value());
 		BOOST_TEST(te.has_reached_end());
-		const ach::text::location loc = te.current_location();
+		const ach::text::located_span loc = te.current_location();
 		BOOST_TEST(loc.whole_line().empty());
 		BOOST_TEST(loc.str().empty());
 		BOOST_TEST(loc.span().column == 0);
@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 				!te.has_reached_end(),
 				"text extractor should not reach end while steps are remaining");
 
-			const auto loc = [&]() -> ach::text::location {
+			const auto loc = [&]() -> ach::text::located_span {
 				if (step.operation == extraction_operation::alphas_underscores) {
 					return te.extract_alphas_underscores();
 				}
@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 					return te.extract_identifier();
 				}
 				else if (step.operation == extraction_operation::n_characters) {
-					ach::text::location loc = te.extract_n_characters(step.expected_token.size());
+					ach::text::located_span loc = te.extract_n_characters(step.expected_token.size());
 
 					if (step.load_next_line)
 						BOOST_TEST(te.load_next_line());
@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_SUITE(text_extractor_suite)
 				}
 				else {
 					BOOST_FAIL("test bug: non-exhaustive operation implementation");
-					return ach::text::location({}, 0, 0, 0);
+					return ach::text::located_span({}, 0, 0, 0);
 				}
 			}();
 
