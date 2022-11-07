@@ -42,7 +42,7 @@ constexpr bool operator>=(position lhs, position rhs) noexcept
 	return std::tie(lhs.line, lhs.column) >= std::tie(rhs.line, rhs.column);
 }
 
-struct range
+struct span
 {
 	position start_position() const noexcept
 	{
@@ -54,9 +54,9 @@ struct range
 		return position{line, column + length};
 	}
 
-	[[nodiscard]] range extend(std::size_t extra_length) const noexcept
+	[[nodiscard]] span extend(std::size_t extra_length) const noexcept
 	{
-		return range{line, column, length + extra_length};
+		return span{line, column, length + extra_length};
 	}
 
 	std::size_t line = 0;
@@ -67,36 +67,36 @@ struct range
 class location
 {
 public:
-	location(std::string_view whole_line, range range)
-	: m_whole_line(whole_line), m_range(range)
+	location(std::string_view whole_line, span s)
+	: m_whole_line(whole_line), m_span(s)
 	{
-		assert(range.column + range.length <= whole_line.size());
+		assert(s.column + s.length <= whole_line.size());
 	}
 
 	location(std::string_view whole_line, std::size_t line_number, std::size_t column, std::size_t length)
-	: location(whole_line, text::range{line_number, column, length}) {}
+	: location(whole_line, text::span{line_number, column, length}) {}
 
 	std::string_view whole_line() const noexcept { return m_whole_line; }
-	struct range range() const noexcept { return m_range; }
-	bool is_empty() const noexcept { return m_range.length == 0; }
+	struct span span() const noexcept { return m_span; }
+	bool is_empty() const noexcept { return m_span.length == 0; }
 
 	std::string_view str() const noexcept {
-		if (m_range.length == 0)
+		if (m_span.length == 0)
 			return std::string_view();
 
-		return std::string_view(m_whole_line.data() + m_range.column, m_range.length);
+		return std::string_view(m_whole_line.data() + m_span.column, m_span.length);
 	}
 
 	static location merge(location lhs, location rhs) noexcept {
 		assert(lhs.whole_line() == rhs.whole_line());
-		assert(lhs.m_range.line == rhs.m_range.line);
-		assert(lhs.m_range.column + lhs.m_range.length == rhs.m_range.column);
-		return location(lhs.whole_line(), lhs.m_range.extend(rhs.m_range.length));
+		assert(lhs.m_span.line == rhs.m_span.line);
+		assert(lhs.m_span.column + lhs.m_span.length == rhs.m_span.column);
+		return location(lhs.whole_line(), lhs.m_span.extend(rhs.m_span.length));
 	}
 
 private:
 	std::string_view m_whole_line;
-	struct range m_range;
+	struct span m_span;
 };
 
 }

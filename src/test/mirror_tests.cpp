@@ -77,10 +77,10 @@ void check_location(
 	text::location actual,
 	boost::test_tools::assertion_result& test_result)
 {
-	if (expected.range().line != actual.range().line) {
+	if (expected.span().line != actual.span().line) {
 		test_result = false;
 		test_result.message() << location_name << ": line numbers differ, expected "
-			<< expected.range().line << " but got " << actual.range().line << "\n";
+			<< expected.span().line << " but got " << actual.span().line << "\n";
 	}
 
 	if (expected.whole_line() != actual.whole_line()) {
@@ -90,16 +90,16 @@ void check_location(
 			"ACTUAL (" << actual.whole_line().size() << " characters):\n" << actual.whole_line() << "\n";
 	}
 
-	if (expected.range().column != actual.range().column) {
+	if (expected.span().column != actual.span().column) {
 		test_result = false;
 		test_result.message() << location_name << ": column numbers differ, "
-			"expected " << expected.range().column << " but got " << actual.range().column << "\n";
+			"expected " << expected.span().column << " but got " << actual.span().column << "\n";
 	}
 
-	if (expected.range().length != actual.range().length) {
+	if (expected.span().length != actual.span().length) {
 		test_result = false;
 		test_result.message() << location_name << ": lengths differ, "
-			"expected " << expected.range().length << " but got " << actual.range().length << "\n";
+			"expected " << expected.span().length << " but got " << actual.span().length << "\n";
 	}
 }
 
