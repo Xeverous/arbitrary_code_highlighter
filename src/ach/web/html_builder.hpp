@@ -22,16 +22,13 @@ public:
 	std::string& str() noexcept { return result; }
 	const std::string& str() const noexcept { return result; }
 
-private:
-	static std::string_view to_escaped_html(const char& c) noexcept;
-	static std::string_view to_escaped_html(char&& c) = delete;
-
-	void append_raw(std::string_view text);
-	void append_raw(char c);
-
-	void append_class(css_class class_, bool replace_underscores_to_hyphens);
-	void open_span(css_class class_, bool replace_underscores_to_hyphens);
+	void open_span(css_class class_, bool replace_underscores_to_hyphens = false);
 	void close_span();
+	void append_raw(std::string_view text);
+
+private:
+	void append_raw(char c);
+	void append_class(css_class class_, bool replace_underscores_to_hyphens);
 
 	/*
 	 * text must be a valid quoted string (eg text == "\"abc\""):

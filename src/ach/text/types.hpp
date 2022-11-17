@@ -1,5 +1,7 @@
 #pragma once
 
+#include <ach/utility/range.hpp>
+
 #include <cassert>
 #include <string_view>
 #include <tuple>
@@ -10,6 +12,11 @@ struct position
 {
 	std::size_t line = 0;
 	std::size_t column = 0;
+
+	[[nodiscard]] constexpr position next_line() const
+	{
+		return {line + 1u, 0};
+	}
 };
 
 constexpr bool operator==(position lhs, position rhs) noexcept
@@ -97,6 +104,20 @@ public:
 private:
 	std::string_view m_whole_line;
 	struct span m_span;
+};
+
+using range = utility::range<position>;
+
+struct fragment
+{
+	std::string_view str;
+	range r;
+
+	bool empty() const
+	{
+		assert(str.empty() == r.empty());
+		return r.empty();
+	}
 };
 
 }

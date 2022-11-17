@@ -4,6 +4,26 @@
 
 namespace ach::web {
 
+namespace {
+
+std::string_view to_escaped_html(char&& c) noexcept = delete;
+std::string_view to_escaped_html(const char& c) noexcept
+{
+	switch (c)
+	{
+		case '&':
+			return "&amp;";
+		case '<':
+			return "&lt;";
+		case '>':
+			return "&gt;";
+		default:
+			return {&c, 1};
+	}
+}
+
+}
+
 void html_builder::open_table(std::size_t lines, std::string_view code_class)
 {
 	result +=
@@ -122,21 +142,6 @@ void html_builder::append_raw(char c)
 {
 	const std::string_view escaped = to_escaped_html(c);
 	result.append(escaped.data(), escaped.data() + escaped.length());
-}
-
-std::string_view html_builder::to_escaped_html(const char& c) noexcept
-{
-	switch (c)
-	{
-		case '&':
-			return "&amp;";
-		case '<':
-			return "&lt;";
-		case '>':
-			return "&gt;";
-		default:
-			return {&c, 1};
-	}
 }
 
 }

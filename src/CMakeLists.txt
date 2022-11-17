@@ -2,6 +2,9 @@
 # core library target
 
 add_library(ach_core STATIC
+	ach/clangd/code_tokenizer.cpp
+	ach/clangd/core.cpp
+	ach/clangd/spliced_text_parser.cpp
 	ach/text/extractor.cpp
 	ach/mirror/color_tokenizer.cpp
 	ach/mirror/core.cpp

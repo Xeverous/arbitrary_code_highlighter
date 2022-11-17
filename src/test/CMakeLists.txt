@@ -13,6 +13,7 @@ add_executable(ach_test
 	algorithm_tests.cpp
 	text_extractor_tests.cpp
 	mirror_tests.cpp
+	splice_tests.cpp
 )
 
 target_include_directories(ach_test
