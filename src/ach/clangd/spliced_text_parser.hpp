@@ -18,6 +18,11 @@ public:
 		return m_iterator == spliced_text_iterator();
 	}
 
+	spliced_text_iterator current_iterator() const noexcept
+	{
+		return m_iterator;
+	}
+
 	text::position current_position() const noexcept
 	{
 		return m_iterator.position();

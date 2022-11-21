@@ -13,9 +13,18 @@ struct position
 	std::size_t line = 0;
 	std::size_t column = 0;
 
-	[[nodiscard]] constexpr position next_line() const
+	constexpr void next_line()
 	{
-		return {line + 1u, 0};
+		++line;
+		column = 0;
+	}
+
+	constexpr void next(char current)
+	{
+		if (current == '\n')
+			next_line();
+		else
+			++column;
 	}
 };
 
@@ -119,5 +128,50 @@ struct fragment
 		return r.empty();
 	}
 };
+
+class text_iterator
+{
+public:
+	constexpr text_iterator(const char* ptr, position pos)
+	: m_it(ptr), m_position(pos)
+	{}
+
+	constexpr const char* pointer() const { return m_it; }
+	constexpr text::position position() const { return m_position; }
+
+	constexpr char operator*() const
+	{
+		return *m_it;
+	}
+
+	constexpr text_iterator& operator++()
+	{
+		m_position.next(*m_it);
+		++m_it;
+		return *this;
+	}
+
+	constexpr text_iterator operator++(int)
+	{
+		auto old = *this;
+		operator++();
+		return old;
+	}
+
+private:
+	friend constexpr bool operator==(text_iterator lhs, text_iterator rhs);
+
+	const char* m_it;
+	text::position m_position;
+};
+
+constexpr bool operator==(text_iterator lhs, text_iterator rhs)
+{
+	return lhs.m_it == rhs.m_it;
+}
+constexpr bool operator!=(text_iterator lhs, text_iterator rhs)
+{
+	return !(lhs == rhs);
+}
 
 }

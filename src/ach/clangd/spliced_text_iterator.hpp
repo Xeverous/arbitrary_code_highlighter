@@ -21,6 +21,10 @@ public:
 
 	text::position position() const { return m_position; }
 	std::string_view remaining_text() const { return m_text; }
+	text::text_iterator to_text_iterator() const
+	{
+		return {m_text.data(), m_position};
+	}
 
 	char operator*() const
 	{
@@ -33,11 +37,7 @@ public:
 		assert(!m_text.empty());
 		assert(front_splice_length(m_text) == 0);
 
-		if (m_text.front() == '\n')
-			m_position = m_position.next_line();
-		else
-			++m_position.column;
-
+		m_position.next(m_text.front());
 		m_text.remove_prefix(1u);
 
 		remove_front_splices(m_text, m_position);

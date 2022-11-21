@@ -44,6 +44,16 @@ preprocessor_state_t preprocessor_directive_to_state(text::fragment directive)
 
 }
 
+std::string_view code_tokenizer::semantic_token_str(semantic_token sem_token) const
+{
+	auto it = m_parser.current_iterator().to_text_iterator();
+	assert(it.position() <= sem_token.pos_begin());
+	while (it.position() < sem_token.pos_begin())
+		++it;
+
+	return {it.pointer(), sem_token.length};
+}
+
 bool code_tokenizer::advance_semantic_tokens()
 {
 	m_current_semantic_tokens.first = m_current_semantic_tokens.last;

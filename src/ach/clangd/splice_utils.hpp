@@ -60,7 +60,7 @@ constexpr void remove_front_splices(std::string_view& text, text::position& pos)
 			return;
 
 		text.remove_prefix(length);
-		pos = pos.next_line();
+		pos.next_line();
 	}
 }
 
