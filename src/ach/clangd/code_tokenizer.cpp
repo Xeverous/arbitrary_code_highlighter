@@ -110,11 +110,11 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token(util
 			return next_code_token_context_none(keywords);
 		case context_state_t::comment_single:
 			return next_code_token_context_comment(false, false);
-		case context_state_t::comment_single_doc:
+		case context_state_t::comment_single_doxygen:
 			return next_code_token_context_comment(false, true);
 		case context_state_t::comment_multi:
 			return next_code_token_context_comment(true, false);
-		case context_state_t::comment_multi_doc:
+		case context_state_t::comment_multi_doxygen:
 			return next_code_token_context_comment(true, true);
 		case context_state_t::comment_end:
 			m_context_state = context_state_t::none;
@@ -188,8 +188,8 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_cont
 	// the else are: trigraphs (unsupported) and splice (implemented at the level of the iterator)
 
 	if (text::fragment comment_start = m_parser.parse_exactly("///"); !comment_start.empty()) {
-		m_context_state = context_state_t::comment_single_doc;
-		return code_token{syntax_token::comment_begin_single_doc, comment_start};
+		m_context_state = context_state_t::comment_single_doxygen;
+		return code_token{syntax_token::comment_begin_single_doxygen, comment_start};
 	}
 
 	if (text::fragment comment_start = m_parser.parse_exactly("//"); !comment_start.empty()) {
@@ -204,8 +204,8 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_cont
 	}
 
 	if (text::fragment comment_start = m_parser.parse_exactly("/**"); !comment_start.empty()) {
-		m_context_state = context_state_t::comment_multi_doc;
-		return code_token{syntax_token::comment_begin_multi_doc, comment_start};
+		m_context_state = context_state_t::comment_multi_doxygen;
+		return code_token{syntax_token::comment_begin_multi_doxygen, comment_start};
 	}
 
 	if (text::fragment comment_start = m_parser.parse_exactly("/*"); !comment_start.empty()) {
@@ -259,11 +259,11 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_cont
 		}
 		case preprocessor_state_t::preprocessor_after_include: {
 			if (text::fragment quoted = m_parser.parse_quoted('<', '>'); !quoted.empty()) {
-				return code_token{syntax_token::preprocessor_file, quoted};
+				return code_token{syntax_token::preprocessor_header_file, quoted};
 			}
 
 			if (text::fragment quoted = m_parser.parse_quoted('"'); !quoted.empty()) {
-				return code_token{syntax_token::preprocessor_file, quoted};
+				return code_token{syntax_token::preprocessor_header_file, quoted};
 			}
 
 			return make_error(error_reason::syntax_error);
@@ -294,19 +294,19 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_cont
 	return make_error(error_reason::internal_error_unhandled_preprocessor);
 }
 
-std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_context_comment(bool is_multiline, bool is_documentation)
+std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_context_comment(bool is_multiline, bool is_doxygen)
 {
-	if (is_documentation) {
-		if (text::fragment comment_tag = m_parser.parse_comment_tag_doc(); !comment_tag.empty())
-			return code_token{syntax_token::comment_tag_doc, comment_tag};
+	if (is_doxygen) {
+		if (text::fragment comment_tag = m_parser.parse_comment_tag_doxygen(); !comment_tag.empty())
+			return code_token{syntax_token::comment_tag_doxygen, comment_tag};
 	}
 
 	if (text::fragment comment_tag = m_parser.parse_comment_tag_todo(); !comment_tag.empty())
 		return code_token{syntax_token::comment_tag_todo, comment_tag};
 
 	if (is_multiline) {
-		if (is_documentation) {
-			if (text::fragment comment_body = m_parser.parse_comment_multi_doc_body(); !comment_body.empty())
+		if (is_doxygen) {
+			if (text::fragment comment_body = m_parser.parse_comment_multi_doxygen_body(); !comment_body.empty())
 				return code_token{syntax_token::nothing_special, comment_body};
 		}
 		else {
@@ -320,8 +320,8 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_cont
 		}
 	}
 	else {
-		if (is_documentation) {
-			if (text::fragment comment_body = m_parser.parse_comment_single_doc_body(); !comment_body.empty())
+		if (is_doxygen) {
+			if (text::fragment comment_body = m_parser.parse_comment_single_doxygen_body(); !comment_body.empty())
 				return code_token{syntax_token::nothing_special, comment_body};
 		}
 		else {

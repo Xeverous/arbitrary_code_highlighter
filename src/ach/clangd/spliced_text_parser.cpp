@@ -331,7 +331,7 @@ auto make_digit_sequence_parser(Parser&& digit_parser)
 // predefined parsers
 
 inline auto comment_tag_todo = make_keyword_parser(literal_string{"TODO"} | literal_string{"FIXME"});
-inline auto comment_tag_doc = literal_char{'@'} >> +specific_char{function_to_function_object(text::is_alpha)};
+inline auto comment_tag_doxygen = literal_char{'@'} >> +specific_char{function_to_function_object(text::is_alpha)};
 
 inline auto digit_binary  = specific_char{function_to_function_object(text::is_digit_binary)};
 inline auto digit_octal   = specific_char{function_to_function_object(text::is_digit_octal)};
@@ -481,9 +481,9 @@ text::fragment spliced_text_parser::parse_comment_tag_todo()
 	return parse(parsers::comment_tag_todo);
 }
 
-text::fragment spliced_text_parser::parse_comment_tag_doc()
+text::fragment spliced_text_parser::parse_comment_tag_doxygen()
 {
-	return parse(parsers::comment_tag_doc);
+	return parse(parsers::comment_tag_doxygen);
 }
 
 text::fragment spliced_text_parser::parse_comment_single_body()
@@ -493,12 +493,12 @@ text::fragment spliced_text_parser::parse_comment_single_body()
 	);
 }
 
-text::fragment spliced_text_parser::parse_comment_single_doc_body()
+text::fragment spliced_text_parser::parse_comment_single_doxygen_body()
 {
 	return parse(
 		+(parsers::any_char{}
 			- parsers::literal_char{'\n'}
-			- parsers::comment_tag_doc
+			- parsers::comment_tag_doxygen
 			- parsers::comment_tag_todo
 		)
 	);
@@ -511,12 +511,12 @@ text::fragment spliced_text_parser::parse_comment_multi_body()
 	);
 }
 
-text::fragment spliced_text_parser::parse_comment_multi_doc_body()
+text::fragment spliced_text_parser::parse_comment_multi_doxygen_body()
 {
 	return parse(
 		+(parsers::any_char{}
 			- parsers::literal_string{"*/"}
-			- parsers::comment_tag_doc
+			- parsers::comment_tag_doxygen
 			- parsers::comment_tag_todo
 		)
 	);

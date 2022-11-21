@@ -20,27 +20,29 @@ namespace css {
 
 constexpr auto pp_hash = "pp-hash";
 constexpr auto pp_directive = "pp-directive";
-constexpr auto pp_file = "pp-file";
+constexpr auto pp_header_file = "pp-header";
 constexpr auto pp_macro = "pp-macro";
 constexpr auto pp_macro_param = "pp-macro-param";
+constexpr auto pp_macro_body = "pp-macro-body"; // TODO implement and use
 constexpr auto pp_other = "pp-other";
 
-constexpr auto comment_single = "comment-single";
-constexpr auto comment_single_doc = "comment-single-doc";
-constexpr auto comment_multi = "comment-multi";
-constexpr auto comment_multi_doc = "comment-multi-doc";
-constexpr auto comment_tag_todo = "comment-tag-todo";
-constexpr auto comment_tag_doc = "comment-tag-doc";
+constexpr auto comment_single = "com-single";
+constexpr auto comment_single_doxygen = "com-single-dox";
+constexpr auto comment_multi = "com-multi";
+constexpr auto comment_multi_doxygen = "com-multi-dox";
+constexpr auto comment_tag_todo = "com-tag-todo";
+constexpr auto comment_tag_doxygen = "com-tag-dox";
 
 constexpr auto keyword = "keyword";
 
-constexpr auto literal_prefix = "literal-prefix";
-constexpr auto literal_suffix = "literal-suffix";
-constexpr auto literal_number = "literal-number";
-constexpr auto literal_char = "literal-char";
-constexpr auto literal_string = "literal-string";
-constexpr auto literal_string_raw_delimeter = "literal-string-raw-delim";
-constexpr auto escape_sequence = "escape-sequence";
+constexpr auto literal_number = "lit-num";
+constexpr auto literal_character = "lit-chr";
+constexpr auto literal_string = "lit-str";
+constexpr auto literal_string_raw_delimeter = "lit-str-raw-delim";
+constexpr auto literal_prefix = "lit-pre";
+constexpr auto literal_suffix = "lit-suf";
+constexpr auto escape_sequence = "esc-seq";
+constexpr auto format_sequence = "fmt-seq"; // TODO implement and use
 
 constexpr auto unknown = "unknown";
 
@@ -50,12 +52,14 @@ constexpr auto disabled_code = "disabled-code";
 
 constexpr auto macro = "macro"; // macro usages (outside preprocessor)
 
-constexpr auto variable_param = "var-param";
-constexpr auto variable_outparam = "var-param-out";
+constexpr auto parameter = "param";
+constexpr auto out_parameter = "param-out";
+constexpr auto template_parameter = "param-tmpl";
+
 constexpr auto variable_local = "var-local";
 constexpr auto variable_global = "var-global";
 constexpr auto variable_member = "var-member";
-constexpr auto variable_enum = "var-enum"; // enum values (not enum types)
+constexpr auto enumerator = "enum";
 
 constexpr auto function_free = "func-free";
 constexpr auto function_member = "func-member";
@@ -66,9 +70,8 @@ constexpr auto type_interface = "type-interface";
 constexpr auto type_enum = "type-enum";
 constexpr auto type_generic = "type";
 
-constexpr auto templates_concept = "tmpl-concept";
-constexpr auto templates_param = "tmpl-param";
-constexpr auto templates_dependent_name = "tmpl-dep-name";
+constexpr auto concept_ = "concept";
+constexpr auto dependent_name = "dep-name";
 
 constexpr auto namespace_ = "namespace";
 
@@ -99,8 +102,8 @@ builder_action token_to_action(syntax_token token)
 			return open_paste_close{css::pp_hash};
 		case syntax_token::preprocessor_directive:
 			return open_paste_close{css::pp_directive};
-		case syntax_token::preprocessor_file:
-			return open_paste_close{css::pp_file};
+		case syntax_token::preprocessor_header_file:
+			return open_paste_close{css::pp_header_file};
 		case syntax_token::preprocessor_macro:
 			return open_paste_close{css::pp_macro};
 		case syntax_token::preprocessor_macro_param:
@@ -113,18 +116,18 @@ builder_action token_to_action(syntax_token token)
 			return paste_text_close_span{};
 		case syntax_token::comment_begin_single:
 			return open_span_paste_text{css::comment_single};
-		case syntax_token::comment_begin_single_doc:
-			return open_span_paste_text{css::comment_single_doc};
+		case syntax_token::comment_begin_single_doxygen:
+			return open_span_paste_text{css::comment_single_doxygen};
 		case syntax_token::comment_begin_multi:
 			return open_span_paste_text{css::comment_multi};
-		case syntax_token::comment_begin_multi_doc:
-			return open_span_paste_text{css::comment_multi_doc};
+		case syntax_token::comment_begin_multi_doxygen:
+			return open_span_paste_text{css::comment_multi_doxygen};
 		case syntax_token::comment_end:
 			return paste_text_close_span{};
 		case syntax_token::comment_tag_todo:
 			return open_paste_close{css::comment_tag_todo};
-		case syntax_token::comment_tag_doc:
-			return open_paste_close{css::comment_tag_doc};
+		case syntax_token::comment_tag_doxygen:
+			return open_paste_close{css::comment_tag_doxygen};
 		case syntax_token::keyword:
 			return open_paste_close{css::keyword};
 		case syntax_token::identifier_unknown:
@@ -138,7 +141,7 @@ builder_action token_to_action(syntax_token token)
 		case syntax_token::literal_string:
 			return open_paste_close{css::literal_string};
 		case syntax_token::literal_char_begin:
-			return open_span_paste_text{css::literal_char};
+			return open_span_paste_text{css::literal_character};
 		case syntax_token::literal_string_begin:
 			return open_span_paste_text{css::literal_string};
 		case syntax_token::literal_text_end:
@@ -178,15 +181,15 @@ std::optional<std::string_view> semantic_token_info_to_css_class(semantic_token_
 	switch (info.type) {
 		case semantic_token_type::parameter:
 			if (info.modifers.is_out_parameter)
-				return css::variable_outparam;
+				return css::out_parameter;
 			else
-				return css::variable_param;
+				return css::parameter;
 		case semantic_token_type::variable:
 			return handle_variable(css::variable_local);
 		case semantic_token_type::property:
 			return handle_variable(css::variable_member);
 		case semantic_token_type::enum_member:
-			return css::variable_enum;
+			return css::enumerator;
 		case semantic_token_type::function:
 			return css::function_free;
 		case semantic_token_type::method:
@@ -203,9 +206,9 @@ std::optional<std::string_view> semantic_token_info_to_css_class(semantic_token_
 		case semantic_token_type::type:
 			return css::type_generic;
 		case semantic_token_type::concept_:
-			return css::templates_concept;
+			return css::concept_;
 		case semantic_token_type::template_parameter:
-			return css::templates_param;
+			return css::template_parameter;
 		case semantic_token_type::namespace_:
 			return css::namespace_;
 		case semantic_token_type::disabled_code:
@@ -214,7 +217,7 @@ std::optional<std::string_view> semantic_token_info_to_css_class(semantic_token_
 			return css::macro;
 		case semantic_token_type::unknown:
 			if (info.modifers.is_dependent_name)
-				return css::templates_dependent_name;
+				return css::dependent_name;
 			else
 				break;
 	}

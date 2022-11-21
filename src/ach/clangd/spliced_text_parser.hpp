@@ -57,11 +57,11 @@ public:
 	text::fragment parse_symbols(); // TODO vague name
 
 	text::fragment parse_comment_tag_todo();
-	text::fragment parse_comment_tag_doc();
+	text::fragment parse_comment_tag_doxygen();
 	text::fragment parse_comment_single_body();
-	text::fragment parse_comment_single_doc_body();
+	text::fragment parse_comment_single_doxygen_body();
 	text::fragment parse_comment_multi_body();
-	text::fragment parse_comment_multi_doc_body();
+	text::fragment parse_comment_multi_doxygen_body();
 
 	// quoted string, nothing special inside like escape sequences
 	// intended for specific parts of the preprocessor

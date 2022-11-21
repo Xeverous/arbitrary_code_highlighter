@@ -35,9 +35,9 @@ enum class context_state_t
 {
 	none,
 	comment_single,
-	comment_single_doc,
+	comment_single_doxygen,
 	comment_multi,
-	comment_multi_doc,
+	comment_multi_doxygen,
 	comment_end,
 	literal_character,
 	literal_string,

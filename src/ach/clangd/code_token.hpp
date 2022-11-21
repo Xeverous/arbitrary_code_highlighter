@@ -14,7 +14,7 @@ enum class syntax_token
 	// without preceeding #, only identifier - there may be whitespace between # and the directive
 	preprocessor_directive,
 	// with "" or <>, may appear after #include, after #line and inside __has_include()
-	preprocessor_file,
+	preprocessor_header_file,
 	preprocessor_macro,
 	// parameters of function-like macros
 	preprocessor_macro_param,
@@ -26,14 +26,14 @@ enum class syntax_token
 	disabled_code_end,
 
 	comment_begin_single,
-	comment_begin_single_doc,
+	comment_begin_single_doxygen,
 	comment_begin_multi,
-	comment_begin_multi_doc,
+	comment_begin_multi_doxygen,
 	comment_end,
 	// inside any comment, stuff like TODO and FIXME
 	comment_tag_todo,
-	// only inside documentation comments, stuff like @brief
-	comment_tag_doc,
+	// only inside doxygen documentation comments, stuff like @brief
+	comment_tag_doxygen,
 
 	keyword,
 
