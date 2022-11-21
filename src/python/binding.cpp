@@ -74,109 +74,49 @@ py::str run_mirror_highlighter(
 	}, result);
 }
 
-ach::clangd::semantic_token_type parse_semantic_token_type(std::string_view name)
-{
-	using stt = ach::clangd::semantic_token_type;
-
-	if (name == "variable")
-		return stt::variable;
-	else if (name == "parameter")
-		return stt::parameter;
-	else if (name == "function")
-		return stt::function;
-	else if (name == "method")
-		return stt::method;
-	else if (name == "property")
-		return stt::property;
-	else if (name == "class")
-		return stt::class_;
-	else if (name == "interface")
-		return stt::interface;
-	else if (name == "enum")
-		return stt::enum_;
-	else if (name == "enumMember")
-		return stt::enum_member;
-	else if (name == "type")
-		return stt::type;
-	else if (name == "unknown")
-		return stt::unknown;
-	else if (name == "namespace")
-		return stt::namespace_;
-	else if (name == "typeParameter")
-		return stt::template_parameter;
-	else if (name == "concept")
-		return stt::concept_;
-	else if (name == "macro")
-		return stt::macro;
-	else if (name == "comment")
-		return stt::disabled_code;
-
-	throw py::value_error(std::string("unknown SemanticToken type: ").append(name).c_str());
-}
-
 std::vector<ach::clangd::semantic_token_type> parse_semantic_token_types(const py::list& list_semantic_token_types)
 {
 	std::vector<ach::clangd::semantic_token_type> result;
 	result.reserve(list_semantic_token_types.size());
 
-	for (const auto& token_type : list_semantic_token_types)
-		result.push_back(parse_semantic_token_type(token_type.cast<std::string_view>()));
+	for (const auto& token_type : list_semantic_token_types) {
+		const auto name = token_type.cast<std::string_view>();
+
+		std::optional<ach::clangd::semantic_token_type> token_result =
+			ach::clangd::parse_semantic_token_type(name);
+
+		if (token_result == std::nullopt)
+			throw py::value_error(std::string("unknown SemanticToken type: ").append(name).c_str());
+
+		result.push_back(*token_result);
+	}
 
 	return result;
 }
 
-using apply_token_mod_f = void (ach::clangd::semantic_token_modifiers&);
-apply_token_mod_f* parse_semantic_token_modifier(std::string_view name)
+std::vector<ach::clangd::apply_semantic_token_modifier_f*>
+parse_semantic_token_modifiers(const py::list& list_semantic_token_modifiers)
 {
-	using stm = ach::clangd::semantic_token_modifiers;
-	using stsm = ach::clangd::semantic_token_scope_modifier;
-
-	if (name == "declaration")
-		return +[](stm& m) { m.is_declaration = true; };
-	else if (name == "deprecated")
-		return +[](stm& m) { m.is_deprecated = true; };
-	else if (name == "deduced")
-		return +[](stm& m) { m.is_deduced = true; };
-	else if (name == "readonly")
-		return +[](stm& m) { m.is_readonly = true; };
-	else if (name == "static")
-		return +[](stm& m) { m.is_static = true; };
-	else if (name == "abstract")
-		return +[](stm& m) { m.is_abstract = true; };
-	else if (name == "virtual")
-		return +[](stm& m) { m.is_virtual = true; };
-	else if (name == "dependentName")
-		return +[](stm& m) { m.is_dependent_name = true; };
-	else if (name == "defaultLibrary")
-		return +[](stm& m) { m.is_from_std_lib = true; };
-	else if (name == "usedAsMutableReference")
-		return +[](stm& m) { m.is_out_parameter = true; };
-	else if (name == "functionScope")
-		return +[](stm& m) { m.scope = stsm::function; };
-	else if (name == "classScope")
-		return +[](stm& m) { m.scope = stsm::class_; };
-	else if (name == "fileScope")
-		return +[](stm& m) { m.scope = stsm::file; };
-	else if (name == "globalScope")
-		return +[](stm& m) { m.scope = stsm::global; };
-
-	throw py::value_error(std::string("unknown SemanticToken modifier: ").append(name).c_str());
-}
-
-std::vector<apply_token_mod_f*> parse_semantic_token_modifiers(const py::list& list_semantic_token_modifiers)
-{
-	std::vector<apply_token_mod_f*> result;
+	std::vector<ach::clangd::apply_semantic_token_modifier_f*> result;
 	result.reserve(list_semantic_token_modifiers.size());
 
-	for (const auto& token_modifier : list_semantic_token_modifiers)
-		result.push_back(parse_semantic_token_modifier(token_modifier.cast<std::string_view>()));
+	for (const auto& token_modifier : list_semantic_token_modifiers) {
+		const auto name = token_modifier.cast<std::string_view>();
+
+		ach::clangd::apply_semantic_token_modifier_f* fptr = ach::clangd::parse_semantic_token_modifier(name);
+
+		if (fptr == nullptr)
+			throw py::value_error(std::string("unknown SemanticToken modifier: ").append(name).c_str());
+
+		result.push_back(fptr);
+	}
 
 	return result;
 }
 
 ach::clangd::semantic_token_info get_semantic_token_info(
 	const std::vector<ach::clangd::semantic_token_type>& semantic_token_types,
-	const std::vector<apply_token_mod_f*>& semantic_token_modifiers,
+	const std::vector<ach::clangd::apply_semantic_token_modifier_f*>& semantic_token_modifiers,
 	const pybind11::handle& semantic_token)
 {
 	const auto token_type = semantic_token.attr("token_type").cast<std::size_t>();
@@ -237,7 +177,7 @@ py::str run_clangd_highlighter(
 	const std::vector<ach::clangd::semantic_token_type> semantic_token_types =
 		parse_semantic_token_types(list_semantic_token_types);
 
-	const std::vector<apply_token_mod_f*> semantic_token_modifiers =
+	const std::vector<ach::clangd::apply_semantic_token_modifier_f*> semantic_token_modifiers =
 		parse_semantic_token_modifiers(list_semantic_token_modifiers);
 
 	const std::vector<std::string> keywords = parse_keywords(list_keywords);

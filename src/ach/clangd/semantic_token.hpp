@@ -2,6 +2,9 @@
 
 #include <ach/text/types.hpp>
 
+#include <string_view>
+#include <optional>
+
 namespace ach::clangd {
 
 /**
@@ -48,6 +51,46 @@ enum class semantic_token_type {
 	unknown
 };
 
+inline std::optional<semantic_token_type> parse_semantic_token_type(std::string_view name)
+{
+	using stt = semantic_token_type;
+
+	if (name == "variable")
+		return stt::variable;
+	else if (name == "parameter")
+		return stt::parameter;
+	else if (name == "function")
+		return stt::function;
+	else if (name == "method")
+		return stt::method;
+	else if (name == "property")
+		return stt::property;
+	else if (name == "class")
+		return stt::class_;
+	else if (name == "interface")
+		return stt::interface;
+	else if (name == "enum")
+		return stt::enum_;
+	else if (name == "enumMember")
+		return stt::enum_member;
+	else if (name == "type")
+		return stt::type;
+	else if (name == "unknown")
+		return stt::unknown;
+	else if (name == "namespace")
+		return stt::namespace_;
+	else if (name == "typeParameter")
+		return stt::template_parameter;
+	else if (name == "concept")
+		return stt::concept_;
+	else if (name == "macro")
+		return stt::macro;
+	else if (name == "comment")
+		return stt::disabled_code;
+	else
+		return std::nullopt;
+}
+
 // "functionScope", "classScope", "fileScope", "globalScope"
 // + none because not everything (e.g. template parameters and disabled code) has any of these flags on
 enum class semantic_token_scope_modifier { none, function, class_, file, global };
@@ -85,6 +128,47 @@ constexpr bool operator==(semantic_token_modifiers lhs, semantic_token_modifiers
 constexpr bool operator!=(semantic_token_modifiers lhs, semantic_token_modifiers rhs)
 {
 	return !(lhs == rhs);
+}
+
+// Return a function pointer instead of a value because tokens can have multiple modifiers.
+// This makes it easy to apply multiple modifications to a default-constructed
+// semantic_token_modifiers object (whch has no modifiers set).
+using apply_semantic_token_modifier_f = void (semantic_token_modifiers&);
+inline apply_semantic_token_modifier_f* parse_semantic_token_modifier(std::string_view name)
+{
+	using stm = semantic_token_modifiers;
+	using stsm = semantic_token_scope_modifier;
+
+	if (name == "declaration")
+		return +[](stm& m) { m.is_declaration = true; };
+	else if (name == "deprecated")
+		return +[](stm& m) { m.is_deprecated = true; };
+	else if (name == "deduced")
+		return +[](stm& m) { m.is_deduced = true; };
+	else if (name == "readonly")
+		return +[](stm& m) { m.is_readonly = true; };
+	else if (name == "static")
+		return +[](stm& m) { m.is_static = true; };
+	else if (name == "abstract")
+		return +[](stm& m) { m.is_abstract = true; };
+	else if (name == "virtual")
+		return +[](stm& m) { m.is_virtual = true; };
+	else if (name == "dependentName")
+		return +[](stm& m) { m.is_dependent_name = true; };
+	else if (name == "defaultLibrary")
+		return +[](stm& m) { m.is_from_std_lib = true; };
+	else if (name == "usedAsMutableReference")
+		return +[](stm& m) { m.is_out_parameter = true; };
+	else if (name == "functionScope")
+		return +[](stm& m) { m.scope = stsm::function; };
+	else if (name == "classScope")
+		return +[](stm& m) { m.scope = stsm::class_; };
+	else if (name == "fileScope")
+		return +[](stm& m) { m.scope = stsm::file; };
+	else if (name == "globalScope")
+		return +[](stm& m) { m.scope = stsm::global; };
+	else
+		return nullptr;
 }
 
 // fields from LSP specification (token type/mods restricted for clangd implementation)
