@@ -256,7 +256,7 @@ std::variant<std::string, highlighter_error> run_highlighter(
 		builder.open_table(num_lines, options.table_wrap_css_class);
 
 	bool done = false;
-	while (!done && !tokenizer.has_reached_end()) {
+	while (!done) {
 		// Save current progress before calling next_token.
 		// While next_code_token doesn't modify the state when it fails,
 		// the fail can occur later in token_to_action and the error
@@ -320,8 +320,7 @@ std::variant<std::string, highlighter_error> run_highlighter(
 			return *maybe_error;
 	}
 
-	assert(done || tokenizer.has_reached_end());
-	if (done != tokenizer.has_reached_end()) {
+	if (!tokenizer.has_reached_end()) {
 		return highlighter_error{
 			tokenizer.current_position(),
 			tokenizer.current_semantic_tokens(),
