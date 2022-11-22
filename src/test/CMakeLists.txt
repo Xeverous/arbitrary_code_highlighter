@@ -14,6 +14,7 @@ add_executable(ach_test
 	text_extractor_tests.cpp
 	mirror_tests.cpp
 	splice_tests.cpp
+	code_tokenizer_tests.cpp
 )
 
 target_include_directories(ach_test
