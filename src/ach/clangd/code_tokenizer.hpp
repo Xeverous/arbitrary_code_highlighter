@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ach/clangd/state.hpp>
 #include <ach/clangd/code_token.hpp>
 #include <ach/clangd/semantic_token.hpp>
 #include <ach/clangd/highlighter_error.hpp>
@@ -7,51 +8,11 @@
 #include <ach/utility/range.hpp>
 
 #include <optional>
+#include <string_view>
 #include <variant>
 #include <vector>
 
 namespace ach::clangd {
-
-namespace detail {
-
-enum class preprocessor_state_t
-{
-	// before any non-whitespace character has been read
-	// if the first non-whitespace character is #, it will be a preprocessor line
-	line_begin,
-
-	no_preprocessor,
-
-	preprocessor_after_hash,
-
-	preprocessor_after_define,
-	preprocessor_after_undef,
-	preprocessor_after_include,
-	preprocessor_after_line,
-	preprocessor_after_other // generic coloring
-};
-
-enum class context_state_t
-{
-	none,
-	comment_single,
-	comment_single_doxygen,
-	comment_multi,
-	comment_multi_doxygen,
-	comment_end,
-	literal_character,
-	literal_string,
-	literal_end_optional_suffix,
-	literal_string_raw_quote_open,
-	literal_string_raw_delimeter_open,
-	literal_string_raw_paren_open,
-	literal_string_raw_body,
-	literal_string_raw_paren_close,
-	literal_string_raw_delimeter_close,
-	literal_string_raw_quote_close,
-};
-
-}
 
 class code_tokenizer
 {
@@ -87,6 +48,16 @@ public:
 		return m_current_semantic_tokens;
 	}
 
+	context_state_t current_context_state() const noexcept
+	{
+		return m_context_state;
+	}
+
+	preprocessor_state_t current_preprocessor_state() const noexcept
+	{
+		return m_preprocessor_state;
+	}
+
 	std::variant<code_token, highlighter_error> next_code_token(utility::range<const std::string*> keywords);
 
 private:
@@ -97,7 +68,7 @@ private:
 
 	highlighter_error make_error(error_reason reason) const
 	{
-		return highlighter_error{current_position(), m_current_semantic_tokens, reason};
+		return {reason, current_position(), m_current_semantic_tokens, m_context_state, m_preprocessor_state};
 	}
 
 	std::string_view semantic_token_str(semantic_token sem_token) const;
@@ -108,19 +79,29 @@ private:
 	std::variant<code_token, highlighter_error> next_code_token_context_none(utility::range<const std::string*> keywords);
 	std::variant<code_token, highlighter_error> next_code_token_context_comment(bool is_multiline, bool is_documentation);
 	std::variant<code_token, highlighter_error> next_code_token_context_quoted_literal(char delimeter, bool allow_suffix);
-	std::variant<code_token, highlighter_error> next_code_token_no_preprocessor(utility::range<const std::string*> keywords);
+	std::variant<code_token, highlighter_error> next_code_token_basic(utility::range<const std::string*> keywords, bool inside_macro_body);
+
+	bool is_in_macro_params(std::string_view param) const
+	{
+		for (auto p : m_preprocessor_macro_params)
+			if (compare_spliced(p, param))
+				return true;
+
+		return false;
+	}
 
 	spliced_text_parser m_parser;
 
 	utility::range<const semantic_token*> m_all_semantic_tokens;
 	utility::range<const semantic_token*> m_current_semantic_tokens;
 
-	detail::preprocessor_state_t m_preprocessor_state = detail::preprocessor_state_t::line_begin;
-	detail::context_state_t m_context_state = detail::context_state_t::none;
+	preprocessor_state_t m_preprocessor_state = preprocessor_state_t::line_begin;
+	context_state_t m_context_state = context_state_t::none;
 	std::optional<text::position> m_disabled_code_end_pos;
 	// non-empty when parsing preprocessor object-like macro
 	// this will allow to highlight macro parameters inside macro body
-	std::vector<std::string_view> m_preprocessor_param_names;
+	// note: vector content strings may be spliced
+	std::vector<std::string_view> m_preprocessor_macro_params;
 	// non-empty when parsing a raw string literal with non-zero length delimeter
 	// (the delimeter is outside parenthesis: e.g. foo in R"foo(str)foo")
 	text::fragment m_raw_string_literal_delimeter;

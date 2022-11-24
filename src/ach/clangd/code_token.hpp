@@ -18,6 +18,7 @@ enum class syntax_token
 	preprocessor_macro,
 	// parameters of function-like macros
 	preprocessor_macro_param,
+	preprocessor_macro_body,
 	// anything else not specified earlier: text after #error, macro bodies and more
 	// literals and keywords inside macro bodies will use their regular token types
 	preprocessor_other,

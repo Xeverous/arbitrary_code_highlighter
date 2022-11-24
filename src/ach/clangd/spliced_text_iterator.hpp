@@ -3,14 +3,23 @@
 #include <ach/text/types.hpp>
 #include <ach/clangd/splice_utils.hpp>
 
+#include <algorithm>
+#include <cstddef>
 #include <string_view>
 #include <cassert>
+#include <iterator>
 
 namespace ach::clangd {
 
 class spliced_text_iterator
 {
 public:
+	using difference_type = std::ptrdiff_t;
+	using value_type = char;
+	using pointer = const char*;
+	using reference = const char&;
+	using iterator_category = std::forward_iterator_tag;
+
 	spliced_text_iterator() {} // end iterator ctor
 
 	spliced_text_iterator(std::string_view text, text::position pos = {})
@@ -83,6 +92,11 @@ inline std::string_view str_from_range(spliced_text_iterator first, spliced_text
 		return {};
 
 	return std::string_view(first.remaining_text().data(), distance);
+}
+
+inline bool compare_spliced(std::string_view lhs, std::string_view rhs)
+{
+	return std::equal(spliced_text_iterator{lhs}, {}, spliced_text_iterator{rhs}, {});
 }
 
 }

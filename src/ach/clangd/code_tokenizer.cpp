@@ -2,18 +2,16 @@
 #include <ach/clangd/splice_utils.hpp>
 
 #include <iterator>
+#include <string_view>
 
 namespace ach::clangd {
 
-using detail::context_state_t;
-using detail::preprocessor_state_t;
-
 namespace {
 
-bool is_keyword(text::fragment identifier, utility::range<const std::string*> keywords)
+bool is_keyword(std::string_view identifier, utility::range<const std::string*> keywords)
 {
 	for (const auto& kw : keywords)
-		if (compare_potentially_spliced(identifier, kw))
+		if (compare_spliced_with_raw(identifier, kw))
 			return true;
 
 	return false;
@@ -28,15 +26,15 @@ bool matches_semantic_tokens(text::fragment identifier, utility::range<const sem
 		&& identifier.r.last == std::prev(sem_tokens.last)->pos_end();
 }
 
-preprocessor_state_t preprocessor_directive_to_state(text::fragment directive)
+preprocessor_state_t preprocessor_directive_to_state(std::string_view directive)
 {
-	if (compare_potentially_spliced(directive, "define"))
+	if (compare_spliced_with_raw(directive, "define"))
 		return preprocessor_state_t::preprocessor_after_define;
-	else if (compare_potentially_spliced(directive, "undef"))
+	else if (compare_spliced_with_raw(directive, "undef"))
 		return preprocessor_state_t::preprocessor_after_undef;
-	else if (compare_potentially_spliced(directive, "include"))
+	else if (compare_spliced_with_raw(directive, "include"))
 		return preprocessor_state_t::preprocessor_after_include;
-	else if (compare_potentially_spliced(directive, "line"))
+	else if (compare_spliced_with_raw(directive, "line"))
 		return preprocessor_state_t::preprocessor_after_line;
 	else
 		return preprocessor_state_t::preprocessor_after_other;
@@ -219,6 +217,7 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_cont
 
 	if (text::fragment newline = m_parser.parse_newline(); !newline.empty()) {
 		m_preprocessor_state = preprocessor_state_t::line_begin;
+		m_preprocessor_macro_params.clear();
 		return code_token{syntax_token::whitespace, newline};
 	}
 
@@ -233,11 +232,11 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_cont
 			[[fallthrough]];
 		}
 		case preprocessor_state_t::no_preprocessor: {
-			return next_code_token_no_preprocessor(keywords);
+			return next_code_token_basic(keywords, false);
 		}
 		case preprocessor_state_t::preprocessor_after_hash: {
 			if (text::fragment identifier = m_parser.parse_identifier(); !identifier.empty()) {
-				m_preprocessor_state = preprocessor_directive_to_state(identifier);
+				m_preprocessor_state = preprocessor_directive_to_state(identifier.str);
 				return code_token{syntax_token::preprocessor_directive, identifier};
 			}
 
@@ -245,10 +244,47 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_cont
 		}
 		case preprocessor_state_t::preprocessor_after_define: {
 			if (text::fragment identifier = m_parser.parse_identifier(); !identifier.empty()) {
+				m_preprocessor_state = preprocessor_state_t::preprocessor_after_define_identifier;
 				return code_token{syntax_token::preprocessor_macro, identifier};
 			}
 
-			return make_error(error_reason::unsupported);
+			return make_error(error_reason::syntax_error);
+		}
+		case preprocessor_state_t::preprocessor_after_define_identifier: {
+			if (text::fragment paren = m_parser.parse_exactly('('); !paren.empty()) {
+				m_preprocessor_state = preprocessor_state_t::preprocessor_after_define_identifier_paren_open;
+				return code_token{syntax_token::nothing_special, paren};
+			}
+
+			m_preprocessor_state = preprocessor_state_t::preprocessor_macro_body;
+			[[fallthrough]];
+		}
+		case preprocessor_state_t::preprocessor_macro_body: {
+			return next_code_token_basic(keywords, true);
+		}
+		case preprocessor_state_t::preprocessor_after_define_identifier_paren_open: {
+			// For the purpose of simple implementation, allow identifier, "," and "..."
+			// in any order, including incorrect combinations like "x,,y" and "..., x".
+			// Such code isn't valid but detecting invalid code isn't the goal of this program.
+			if (text::fragment paren = m_parser.parse_exactly(')'); !paren.empty()) {
+				m_preprocessor_state = preprocessor_state_t::preprocessor_macro_body;
+				return code_token{syntax_token::nothing_special, paren};
+			}
+
+			if (text::fragment identifier = m_parser.parse_identifier(); !identifier.empty()) {
+				m_preprocessor_macro_params.push_back(identifier.str);
+				return code_token{syntax_token::preprocessor_macro_param, identifier};
+			}
+
+			if (text::fragment comma = m_parser.parse_exactly(','); !comma.empty()) {
+				return code_token{syntax_token::nothing_special, comma};
+			}
+
+			if (text::fragment ellipsis = m_parser.parse_exactly("..."); !ellipsis.empty()) {
+				return code_token{syntax_token::nothing_special, ellipsis};
+			}
+
+			return make_error(error_reason::syntax_error);
 		}
 		case preprocessor_state_t::preprocessor_after_undef: {
 			if (text::fragment identifier = m_parser.parse_identifier(); !identifier.empty()) {
@@ -287,7 +323,7 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_cont
 				return code_token{syntax_token::preprocessor_other, symbols};
 			}
 
-			return make_error(error_reason::unsupported);
+			return make_error(error_reason::syntax_error);
 		}
 	}
 
@@ -361,7 +397,7 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_cont
 }
 
 std::variant<code_token, highlighter_error>
-code_tokenizer::next_code_token_no_preprocessor(utility::range<const std::string*> keywords)
+code_tokenizer::next_code_token_basic(utility::range<const std::string*> keywords, bool inside_macro_body)
 {
 	if (text::fragment prefix = m_parser.parse_raw_string_literal_prefix(); !prefix.empty()) {
 		m_context_state = context_state_t::literal_string_raw_quote_open;
@@ -383,7 +419,7 @@ code_tokenizer::next_code_token_no_preprocessor(utility::range<const std::string
 			// A unique case: clangd doesn't report keywords except auto.
 			// If auto can be deduced, it is reported as a semantic token.
 			// This is simply unneeded: advance semantic tokens and report a keyword.
-			if (compare_potentially_spliced(identifier, "auto")) {
+			if (compare_spliced_with_raw(identifier.str, "auto")) {
 				if (!advance_semantic_tokens())
 					return make_error(error_reason::invalid_semantic_token_data);
 				return code_token{syntax_token::keyword, identifier};
@@ -404,25 +440,37 @@ code_tokenizer::next_code_token_no_preprocessor(utility::range<const std::string
 			return code_token{token, identifier};
 		}
 		else {
-			if (is_keyword(identifier, keywords))
+			if (is_keyword(identifier.str, keywords))
 				return code_token{syntax_token::keyword, identifier};
 
-			// no semantic info and not a keyword: some named entity of unknown purpose
+			if (inside_macro_body) {
+				if (is_in_macro_params(identifier.str))
+					return code_token{syntax_token::preprocessor_macro_param, identifier};
+				else
+					return code_token{syntax_token::preprocessor_macro_body, identifier};
+			}
+
+			// no semantic info, not a keyword and not a macro: unknown purpose
 			// clangd doesn't report some entities - e.g. goto labels
 			return code_token{syntax_token::identifier_unknown, identifier};
 		}
 	}
 
-	if (text::fragment hash = m_parser.parse_exactly('#'); !hash.empty())
-		return make_error(error_reason::syntax_error);
+	if (text::fragment hash = m_parser.parse_exactly('#'); !hash.empty()) {
+		if (inside_macro_body)
+			return code_token{syntax_token::preprocessor_hash, hash};
+		else
+			return make_error(error_reason::syntax_error);
+	}
 
-	if (text::fragment backslash = m_parser.parse_exactly('\\'); !backslash.empty())
-		return make_error(error_reason::syntax_error);
+	if (text::fragment symbols = m_parser.parse_symbols(); !symbols.empty()) {
+		if (inside_macro_body)
+			return code_token{syntax_token::preprocessor_macro_body, symbols};
+		else
+			return code_token{syntax_token::nothing_special, symbols};
+	}
 
-	if (text::fragment symbols = m_parser.parse_symbols(); !symbols.empty())
-		return code_token{syntax_token::nothing_special, symbols};
-
-	return make_error(error_reason::internal_error_unhandled_context_no_preprocessor);
+	return make_error(error_reason::syntax_error);
 }
 
 }

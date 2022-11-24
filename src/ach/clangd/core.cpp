@@ -1,3 +1,4 @@
+#include "ach/clangd/state.hpp"
 #include <ach/clangd/core.hpp>
 #include <ach/clangd/code_token.hpp>
 #include <ach/clangd/code_tokenizer.hpp>
@@ -23,7 +24,7 @@ constexpr auto pp_directive = "pp-directive";
 constexpr auto pp_header_file = "pp-header";
 constexpr auto pp_macro = "pp-macro";
 constexpr auto pp_macro_param = "pp-macro-param";
-constexpr auto pp_macro_body = "pp-macro-body"; // TODO implement and use
+constexpr auto pp_macro_body = "pp-macro-body";
 constexpr auto pp_other = "pp-other";
 
 constexpr auto comment_single = "com-single";
@@ -108,6 +109,8 @@ builder_action token_to_action(syntax_token token)
 			return open_paste_close{css::pp_macro};
 		case syntax_token::preprocessor_macro_param:
 			return open_paste_close{css::pp_macro_param};
+		case syntax_token::preprocessor_macro_body:
+			return open_paste_close{css::pp_macro_body};
 		case syntax_token::preprocessor_other:
 			return open_paste_close{css::pp_other};
 		case syntax_token::disabled_code_begin:
@@ -160,9 +163,9 @@ builder_action token_to_action(syntax_token token)
 			return paste_only{};
 		case syntax_token::end_of_input:
 			return end_of_input{};
-	}
+		}
 
-	return action_error{};
+		return action_error{};
 }
 
 std::optional<std::string_view> semantic_token_info_to_css_class(semantic_token_info info)
@@ -243,8 +246,15 @@ std::variant<std::string, highlighter_error> run_highlighter(
 	highlighter_options options)
 {
 	std::optional<code_tokenizer> maybe_tokenizer = code_tokenizer::create(code, tokens);
-	if (maybe_tokenizer == std::nullopt)
-		return highlighter_error{{}, {}, error_reason::invalid_semantic_token_data};
+	if (maybe_tokenizer == std::nullopt) {
+		return highlighter_error{
+			error_reason::invalid_semantic_token_data,
+			{},
+			{},
+			context_state_t::none,
+			preprocessor_state_t::line_begin
+		};
+	}
 
 	code_tokenizer& tokenizer = *maybe_tokenizer;
 
@@ -263,6 +273,8 @@ std::variant<std::string, highlighter_error> run_highlighter(
 		// should point to semantic tokens before the operation.
 		const auto current_semantic_tokens = tokenizer.current_semantic_tokens();
 		const text::position current_position = tokenizer.current_position();
+		const context_state_t current_context_state = tokenizer.current_context_state();
+		const preprocessor_state_t current_preprocessor_state = tokenizer.current_preprocessor_state();
 
 		std::variant<code_token, highlighter_error> token_or_error = tokenizer.next_code_token(keywords);
 		if (std::holds_alternative<highlighter_error>(token_or_error))
@@ -309,9 +321,11 @@ std::variant<std::string, highlighter_error> run_highlighter(
 			},
 			[&](action_error /* error */) -> std::optional<highlighter_error> {
 				return highlighter_error{
+					error_reason::internal_error_token_to_action,
 					current_position,
 					current_semantic_tokens,
-					error_reason::internal_error_token_to_action
+					current_context_state,
+					current_preprocessor_state
 				};
 			}
 		}, action);
@@ -322,9 +336,11 @@ std::variant<std::string, highlighter_error> run_highlighter(
 
 	if (!tokenizer.has_reached_end()) {
 		return highlighter_error{
+			error_reason::internal_error_unhandled_end_of_input,
 			tokenizer.current_position(),
 			tokenizer.current_semantic_tokens(),
-			error_reason::internal_error_unhandled_end_of_input
+			tokenizer.current_context_state(),
+			tokenizer.current_preprocessor_state()
 		};
 	}
 

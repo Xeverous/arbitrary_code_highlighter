@@ -151,15 +151,23 @@ std::string to_string(const ach::clangd::highlighter_error& error)
 {
 	std::stringstream ss;
 	ss << "[line: " << error.pos.line << ", column: " << error.pos.column << "]"
-		" error: " << ach::clangd::to_string(error.reason) << "\n";
+		" error: " << ach::clangd::to_string(error.reason) << "\n"
+		"context state: " << ach::clangd::to_string(error.context_state) << "\n"
+		"preprocessor state: " << ach::clangd::to_string(error.preprocessor_state) << "\n";
 
-	if (!error.last_semantic_tokens.empty())
-		ss << "last semantic tokens:\n";
-
-	for (ach::clangd::semantic_token token : error.last_semantic_tokens) {
-		ss << "\t[line: " << token.pos.line
-			<< ", column: " << token.pos.column
-			<< ", length" << token.length << "]\n";
+	ss << "last semantic tokens:";
+	if (error.last_semantic_tokens.empty())
+	{
+		ss << " (none)\n";
+	}
+	else
+	{
+		ss << "\n";
+		for (ach::clangd::semantic_token token : error.last_semantic_tokens) {
+			ss << "\t[line: " << token.pos.line
+				<< ", column: " << token.pos.column
+				<< ", length" << token.length << "]\n";
+		}
 	}
 
 	return ss.str();

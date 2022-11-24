@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ach/clangd/semantic_token.hpp>
+#include <ach/clangd/state.hpp>
 #include <ach/text/types.hpp>
 #include <ach/utility/range.hpp>
 
@@ -64,9 +65,11 @@ constexpr std::string_view to_string(error_reason reason)
 
 struct highlighter_error
 {
+	error_reason reason;
 	text::position pos;
 	utility::range<const semantic_token*> last_semantic_tokens;
-	error_reason reason;
+	context_state_t context_state;
+	preprocessor_state_t preprocessor_state;
 };
 
 }

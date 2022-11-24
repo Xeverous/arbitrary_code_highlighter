@@ -84,24 +84,22 @@ inline bool ends_with_backslash_whitespace(std::string_view text)
 	return *it == '\\';
 }
 
-inline bool compare_potentially_spliced(text::fragment frag, std::string_view sv)
+inline bool compare_spliced_with_raw(std::string_view spliced, std::string_view raw)
 {
-	std::string_view str = frag.str;
+	for (char c : raw) {
+		remove_front_splices(spliced);
 
-	for (char c : sv) {
-		remove_front_splices(str);
-
-		if (str.empty())
+		if (spliced.empty())
 			return false;
 
-		if (str.front() != c)
+		if (spliced.front() != c)
 			return false;
 
-		str.remove_prefix(1u);
+		spliced.remove_prefix(1u);
 	}
 
-	remove_front_splices(str);
-	return str.empty();
+	remove_front_splices(spliced);
+	return spliced.empty();
 }
 
 }

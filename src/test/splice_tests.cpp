@@ -93,24 +93,24 @@ BOOST_AUTO_TEST_SUITE(splice_utils)
 		BOOST_TEST(clangd::ends_with_backslash_whitespace("\\\nabc\\\\  "));
 	}
 
-	boost::test_tools::assertion_result test_compare_potentially_spliced(
+	boost::test_tools::assertion_result test_compare_spliced_with_raw(
 		std::string_view input, std::string_view sv, bool expected_result)
 	{
-		return clangd::compare_potentially_spliced(text::fragment{input, {}}, sv) == expected_result;
+		return clangd::compare_spliced_with_raw(input, sv) == expected_result;
 	}
 
-	BOOST_AUTO_TEST_CASE(compare_potentially_spliced)
+	BOOST_AUTO_TEST_CASE(compare_spliced_with_raw)
 	{
-		BOOST_TEST(test_compare_potentially_spliced("", "", true));
-		BOOST_TEST(test_compare_potentially_spliced("\\\n", "", true));
-		BOOST_TEST(test_compare_potentially_spliced("\\ \n", "", true));
-		BOOST_TEST(test_compare_potentially_spliced("\\ \n\\\n", "", true));
-		BOOST_TEST(test_compare_potentially_spliced("\\\n\\ \n", "", true));
-		BOOST_TEST(test_compare_potentially_spliced("a\\\n\\ \nb", "ab", true));
-		BOOST_TEST(test_compare_potentially_spliced("\\\na\\\nb\\\nc\\\n", "abc", true));
-		BOOST_TEST(test_compare_potentially_spliced("\\ \na\\ \nb\\ \nc\\ \n", "abc", true));
-		BOOST_TEST(test_compare_potentially_spliced("\\ \na\\ \n b\\ \nc\\ \n", "abc", false));
-		BOOST_TEST(test_compare_potentially_spliced("\\ \na\\ \nb\\ \nc \\ \n", "abc", false));
+		BOOST_TEST(test_compare_spliced_with_raw("", "", true));
+		BOOST_TEST(test_compare_spliced_with_raw("\\\n", "", true));
+		BOOST_TEST(test_compare_spliced_with_raw("\\ \n", "", true));
+		BOOST_TEST(test_compare_spliced_with_raw("\\ \n\\\n", "", true));
+		BOOST_TEST(test_compare_spliced_with_raw("\\\n\\ \n", "", true));
+		BOOST_TEST(test_compare_spliced_with_raw("a\\\n\\ \nb", "ab", true));
+		BOOST_TEST(test_compare_spliced_with_raw("\\\na\\\nb\\\nc\\\n", "abc", true));
+		BOOST_TEST(test_compare_spliced_with_raw("\\ \na\\ \nb\\ \nc\\ \n", "abc", true));
+		BOOST_TEST(test_compare_spliced_with_raw("\\ \na\\ \n b\\ \nc\\ \n", "abc", false));
+		BOOST_TEST(test_compare_spliced_with_raw("\\ \na\\ \nb\\ \nc \\ \n", "abc", false));
 	}
 
 	BOOST_AUTO_TEST_CASE(spliced_text_iterator)
