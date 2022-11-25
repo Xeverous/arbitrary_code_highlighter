@@ -1,4 +1,3 @@
-#include "ach/clangd/state.hpp"
 #include <ach/clangd/core.hpp>
 #include <ach/clangd/code_token.hpp>
 #include <ach/clangd/code_tokenizer.hpp>
@@ -163,9 +162,9 @@ builder_action token_to_action(syntax_token token)
 			return paste_only{};
 		case syntax_token::end_of_input:
 			return end_of_input{};
-		}
+	}
 
-		return action_error{};
+	return action_error{};
 }
 
 std::optional<std::string_view> semantic_token_info_to_css_class(semantic_token_info info)

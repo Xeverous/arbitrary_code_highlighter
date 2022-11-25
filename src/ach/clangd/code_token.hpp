@@ -42,13 +42,18 @@ enum class syntax_token
 	// Use this when an identifier has no semantic token information.
 	identifier_unknown,
 
+	// for any kind of literal
 	literal_prefix,
 	literal_suffix,
-	literal_number, // both integers and floating-point
-	literal_string, // very simple cases like in preprocessor code
+
+	// both integers and floating-point
+	literal_number,
+	// for simple cases in preprocessor code
+	// whole literal in 1 token, no support for escape sequences
+	literal_string,
 	literal_char_begin,
 	literal_string_begin,
-	literal_text_end,
+	literal_text_end, // closes both char and string literals
 	literal_string_raw_quote,
 	literal_string_raw_delimeter,
 	literal_string_raw_paren,

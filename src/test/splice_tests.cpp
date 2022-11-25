@@ -434,7 +434,7 @@ BOOST_AUTO_TEST_SUITE(splice_utils)
 		BOOST_TEST(frag.r.first == (text::position{7, 9}));
 		BOOST_TEST(frag.r.last  == (text::position{7, 10}));
 
-		frag = parser.parse_char_literal_prefix();
+		frag = parser.parse_text_literal_prefix('\'');
 		BOOST_TEST(parser.current_position() == (text::position{7, 12}));
 		BOOST_TEST(frag.str == "u8");
 		BOOST_TEST(frag.r.first == (text::position{7, 10}));

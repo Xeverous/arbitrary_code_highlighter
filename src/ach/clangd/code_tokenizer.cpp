@@ -404,9 +404,22 @@ code_tokenizer::next_code_token_basic(utility::range<const std::string*> keyword
 		return code_token{syntax_token::literal_prefix, prefix};
 	}
 
-	if (text::fragment prefix = m_parser.parse_char_literal_prefix(); !prefix.empty()) {
-		// TODO need a context change here? seems not necessary, quotes will just be picked up
+	if (text::fragment prefix = m_parser.parse_text_literal_prefix('\''); !prefix.empty()) {
 		return code_token{syntax_token::literal_prefix, prefix};
+	}
+
+	if (text::fragment prefix = m_parser.parse_text_literal_prefix('"'); !prefix.empty()) {
+		return code_token{syntax_token::literal_prefix, prefix};
+	}
+
+	if (text::fragment quote = m_parser.parse_exactly('\''); !quote.empty()) {
+		m_context_state = context_state_t::literal_character;
+		return code_token{syntax_token::literal_char_begin, quote};
+	}
+
+	if (text::fragment quote = m_parser.parse_exactly('"'); !quote.empty()) {
+		m_context_state = context_state_t::literal_string;
+		return code_token{syntax_token::literal_string_begin, quote};
 	}
 
 	if (text::fragment literal = m_parser.parse_numeric_literal(); !literal.empty()) {

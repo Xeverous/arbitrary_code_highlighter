@@ -45,8 +45,6 @@ public:
 	text::fragment parse_identifier();
 	text::fragment parse_numeric_literal();
 	text::fragment parse_text_literal_prefix(char quote);
-	text::fragment parse_char_literal_prefix() { return parse_text_literal_prefix('\''); }
-	text::fragment parse_string_literal_prefix() { return parse_text_literal_prefix('"'); }
 	text::fragment parse_raw_string_literal_prefix();
 	text::fragment parse_raw_string_literal_delimeter_open();
 	text::fragment parse_raw_string_literal_body(std::string_view delimeter);

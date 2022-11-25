@@ -76,10 +76,17 @@ private:
 	// move to the next set of tokens that describe one (potentially spliced) entity
 	[[nodiscard]] bool advance_semantic_tokens();
 
-	std::variant<code_token, highlighter_error> next_code_token_context_none(utility::range<const std::string*> keywords);
-	std::variant<code_token, highlighter_error> next_code_token_context_comment(bool is_multiline, bool is_documentation);
-	std::variant<code_token, highlighter_error> next_code_token_context_quoted_literal(char delimeter, bool allow_suffix);
-	std::variant<code_token, highlighter_error> next_code_token_basic(utility::range<const std::string*> keywords, bool inside_macro_body);
+	[[nodiscard]] std::variant<code_token, highlighter_error>
+	next_code_token_context_none(utility::range<const std::string*> keywords);
+
+	[[nodiscard]] std::variant<code_token, highlighter_error>
+	next_code_token_context_comment(bool is_multiline, bool is_documentation);
+
+	[[nodiscard]] std::variant<code_token, highlighter_error>
+	next_code_token_context_quoted_literal(char delimeter, bool allow_suffix);
+
+	[[nodiscard]] std::variant<code_token, highlighter_error>
+	next_code_token_basic(utility::range<const std::string*> keywords, bool inside_macro_body);
 
 	bool is_in_macro_params(std::string_view param) const
 	{

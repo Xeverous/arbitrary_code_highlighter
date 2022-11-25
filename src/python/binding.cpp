@@ -1,4 +1,3 @@
-#include "ach/clangd/highlighter_error.hpp"
 #include <ach/mirror/color_options.hpp>
 #include <ach/mirror/core.hpp>
 #include <ach/clangd/semantic_token.hpp>
@@ -150,7 +149,8 @@ std::vector<std::string> parse_keywords(const py::list& list_keywords)
 std::string to_string(const ach::clangd::highlighter_error& error)
 {
 	std::stringstream ss;
-	ss << "[line: " << error.pos.line << ", column: " << error.pos.column << "]"
+	// index is 0-based, add 1 for human output
+	ss << "[line: " << error.pos.line + 1 << ", column: " << error.pos.column + 1 << "]"
 		" error: " << ach::clangd::to_string(error.reason) << "\n"
 		"context state: " << ach::clangd::to_string(error.context_state) << "\n"
 		"preprocessor state: " << ach::clangd::to_string(error.preprocessor_state) << "\n";
