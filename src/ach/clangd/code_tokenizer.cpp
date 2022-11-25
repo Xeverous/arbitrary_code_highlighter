@@ -76,6 +76,12 @@ bool code_tokenizer::advance_semantic_tokens()
 	return true;
 }
 
+void code_tokenizer::on_parsed_newline()
+{
+	m_preprocessor_state = preprocessor_state_t::line_begin;
+	m_preprocessor_macro_params.clear();
+}
+
 std::variant<code_token, highlighter_error> code_tokenizer::next_code_token(utility::range<const std::string*> keywords)
 {
 	if (m_disabled_code_end_pos == current_position()) {
@@ -216,8 +222,7 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_cont
 	}
 
 	if (text::fragment newline = m_parser.parse_newline(); !newline.empty()) {
-		m_preprocessor_state = preprocessor_state_t::line_begin;
-		m_preprocessor_macro_params.clear();
+		on_parsed_newline();
 		return code_token{syntax_token::whitespace, newline};
 	}
 
@@ -367,6 +372,7 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_cont
 
 		if (text::fragment newline = m_parser.parse_newline(); !newline.empty()) {
 			m_context_state = context_state_t::none;
+			on_parsed_newline();
 			return code_token{syntax_token::comment_end, newline};
 		}
 	}

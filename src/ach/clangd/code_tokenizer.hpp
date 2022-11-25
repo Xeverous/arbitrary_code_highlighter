@@ -76,6 +76,8 @@ private:
 	// move to the next set of tokens that describe one (potentially spliced) entity
 	[[nodiscard]] bool advance_semantic_tokens();
 
+	void on_parsed_newline();
+
 	[[nodiscard]] std::variant<code_token, highlighter_error>
 	next_code_token_context_none(utility::range<const std::string*> keywords);
 
