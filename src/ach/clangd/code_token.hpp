@@ -5,6 +5,7 @@
 #include <ach/utility/enum.hpp>
 
 #include <variant>
+#include <ostream>
 
 namespace ach::clangd {
 
@@ -66,11 +67,31 @@ ACH_RICH_ENUM_CLASS(syntax_token,
 	(end_of_input)
 );
 
+inline std::ostream& operator<<(std::ostream& os, syntax_token token)
+{
+	return os << utility::to_string(token);
+}
+
 struct identifier_token
 {
 	semantic_token_info info;
-	semantic_token_color_variance color_variance;
+	semantic_token_color_variance color_variance; // TODO simplify implementation
 };
+
+constexpr bool operator==(identifier_token lhs, identifier_token rhs)
+{
+	return lhs.info == rhs.info && lhs.color_variance == rhs.color_variance;
+}
+
+constexpr bool operator!=(identifier_token lhs, identifier_token rhs)
+{
+	return !(lhs == rhs);
+}
+
+inline std::ostream& operator<<(std::ostream& os, identifier_token token)
+{
+	return os << token.info;
+}
 
 using code_token_type = std::variant<syntax_token, identifier_token>;
 
@@ -79,5 +100,13 @@ struct code_token
 	code_token_type token_type;
 	text::fragment origin;
 };
+
+inline std::ostream& operator<<(std::ostream& os, code_token token)
+{
+	os << token.origin;
+	return std::visit([&os](auto token) -> std::ostream& {
+		return os << token;
+	}, token.token_type);
+}
 
 }

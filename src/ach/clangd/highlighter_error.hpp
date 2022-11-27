@@ -7,6 +7,7 @@
 #include <ach/utility/enum.hpp>
 
 #include <string_view>
+#include <ostream>
 
 namespace ach::clangd {
 
@@ -35,5 +36,26 @@ struct highlighter_error
 	context_state_t context_state;
 	preprocessor_state_t preprocessor_state;
 };
+
+inline std::ostream& operator<<(std::ostream& os, highlighter_error error)
+{
+	os << "[" << error.pos << "] error: " << utility::to_string(error.reason) << "\n"
+		"context state: " << utility::to_string(error.context_state) << "\n"
+		"preprocessor state: " << utility::to_string(error.preprocessor_state) << "\n";
+
+	os << "last semantic tokens:";
+	if (error.last_semantic_tokens.empty())
+	{
+		os << " (none)\n";
+	}
+	else
+	{
+		os << "\n";
+		for (semantic_token token : error.last_semantic_tokens)
+			os << "\t[" << token.pos << ", length" << token.length << "]\n";
+	}
+
+	return os;
+}
 
 }

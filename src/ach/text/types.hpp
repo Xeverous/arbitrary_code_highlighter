@@ -5,6 +5,7 @@
 #include <cassert>
 #include <string_view>
 #include <tuple>
+#include <ostream>
 
 namespace ach::text {
 
@@ -56,6 +57,12 @@ constexpr bool operator<=(position lhs, position rhs) noexcept
 constexpr bool operator>=(position lhs, position rhs) noexcept
 {
 	return std::tie(lhs.line, lhs.column) >= std::tie(rhs.line, rhs.column);
+}
+
+inline std::ostream& operator<<(std::ostream& os, position pos)
+{
+	// index is 0-based, add 1 for human output
+	return os << "line: " << pos.line + 1 << ", column: " << pos.column + 1;
 }
 
 struct span
@@ -128,6 +135,22 @@ struct fragment
 		return r.empty();
 	}
 };
+
+constexpr bool operator==(fragment lhs, fragment rhs)
+{
+	return lhs.str == rhs.str && lhs.r == rhs.r;
+}
+
+constexpr bool operator!=(fragment lhs, fragment rhs)
+{
+	return !(lhs == rhs);
+}
+
+inline std::ostream& operator<<(std::ostream& os, fragment frag)
+{
+	return os << "range: [[" << frag.r.first << "], [" << frag.r.last << "]]\n"
+		"str: \"" << frag.str << "\"\n";
+}
 
 class text_iterator
 {

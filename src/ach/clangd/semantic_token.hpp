@@ -5,6 +5,7 @@
 
 #include <string_view>
 #include <optional>
+#include <ostream>
 
 namespace ach::clangd {
 
@@ -94,7 +95,7 @@ inline std::optional<semantic_token_type> parse_semantic_token_type(std::string_
 
 // "functionScope", "classScope", "fileScope", "globalScope"
 // + none because not everything (e.g. template parameters and disabled code) has any of these flags on
-enum class semantic_token_scope_modifier { none, function, class_, file, global };
+ACH_RICH_ENUM_CLASS(semantic_token_scope_modifier, (none)(function)(class_)(file)(global));
 
 struct semantic_token_modifiers {
 	bool is_declaration    = false; // "declaration"
@@ -129,6 +130,41 @@ constexpr bool operator==(semantic_token_modifiers lhs, semantic_token_modifiers
 constexpr bool operator!=(semantic_token_modifiers lhs, semantic_token_modifiers rhs)
 {
 	return !(lhs == rhs);
+}
+
+inline std::ostream& operator<<(std::ostream& os, semantic_token_modifiers token_modifiers)
+{
+	if (token_modifiers.is_declaration)
+		os << "declaration, ";
+
+	if (token_modifiers.is_deprecated)
+		os << "deprecated, ";
+
+	if (token_modifiers.is_deduced)
+		os << "deduced, ";
+
+	if (token_modifiers.is_readonly)
+		os << "readonly, ";
+
+	if (token_modifiers.is_static)
+		os << "static, ";
+
+	if (token_modifiers.is_abstract)
+		os << "abstract, ";
+
+	if (token_modifiers.is_virtual)
+		os << "virtual, ";
+
+	if (token_modifiers.is_dependent_name)
+		os << "dependent_name, ";
+
+	if (token_modifiers.is_from_std_lib)
+		os << "from_std_lib, ";
+
+	if (token_modifiers.is_out_parameter)
+		os << "out_parameter, ";
+
+	return os << "scope: " << utility::to_string(token_modifiers.scope);
 }
 
 // Return a function pointer instead of a value because tokens can have multiple modifiers.
@@ -179,6 +215,11 @@ struct semantic_token_info
 	semantic_token_modifiers modifers = {};
 };
 
+inline std::ostream& operator<<(std::ostream& os, semantic_token_info info)
+{
+	return os << "type: " << utility::to_string(info.type) << "\nmodifiers: " << info.modifers << "\n";
+}
+
 constexpr bool operator==(semantic_token_info lhs, semantic_token_info rhs)
 {
 	return lhs.type == rhs.type && lhs.modifers == rhs.modifers;
@@ -196,6 +237,16 @@ struct semantic_token_color_variance
 	int color_variant = 0;
 	bool last_reference = false;
 };
+
+constexpr bool operator==(semantic_token_color_variance lhs, semantic_token_color_variance rhs)
+{
+	return lhs.color_variant == rhs.color_variant && lhs.last_reference == rhs.last_reference;
+}
+
+constexpr bool operator!=(semantic_token_color_variance lhs, semantic_token_color_variance rhs)
+{
+	return !(lhs == rhs);
+}
 
 struct semantic_token
 {
