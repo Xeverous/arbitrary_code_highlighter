@@ -56,4 +56,5 @@ endif()
 
 ##############################################################################
 
+add_subdirectory(external/enum.hpp)
 add_subdirectory(src)

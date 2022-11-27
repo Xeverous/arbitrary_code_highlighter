@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ach/text/types.hpp>
+#include <ach/utility/enum.hpp>
 
 #include <string_view>
 #include <optional>
@@ -16,40 +17,40 @@ namespace ach::clangd {
  * Comments mention flag names that differ from names in clangd output.
  */
 
-enum class semantic_token_type {
+ACH_RICH_ENUM_CLASS(semantic_token_type,
 	// values
-	parameter,
-	variable,
-	property,
-	enum_member,
+	(parameter)
+	(variable)
+	(property)
+	(enum_member)
 
 	// functions
-	function,
-	method,
+	(function)
+	(method)
 
 	// types
-	class_,
-	interface,
-	enum_,
-	type,
+	(class_)
+	(interface)
+	(enum_)
+	(type)
 
 	// templates
-	concept_,
-	// the LSP defines "typeParameter" semantic token type, clangd uses it to
+	(concept_)
+	// the LSP defines "typeParameter" semantic token type) clangd uses it to
 	// report both type parameters and non-type template parameters (NTTP)
-	template_parameter,
+	(template_parameter)
 
-	namespace_,
+	(namespace_)
 
 	// the LSP defines "comment" semantic token type but
-	// clangd uses it to mark preprocessor-disabled code, not comments
-	disabled_code,
+	// clangd uses it to mark preprocessor-disabled code) not comments
+	(disabled_code)
 
 	// preprocessor
-	macro,
+	(macro)
 
-	unknown
-};
+	(unknown)
+);
 
 inline std::optional<semantic_token_type> parse_semantic_token_type(std::string_view name)
 {

@@ -151,9 +151,9 @@ std::string to_string(const ach::clangd::highlighter_error& error)
 	std::stringstream ss;
 	// index is 0-based, add 1 for human output
 	ss << "[line: " << error.pos.line + 1 << ", column: " << error.pos.column + 1 << "]"
-		" error: " << ach::clangd::to_string(error.reason) << "\n"
-		"context state: " << ach::clangd::to_string(error.context_state) << "\n"
-		"preprocessor state: " << ach::clangd::to_string(error.preprocessor_state) << "\n";
+		" error: " << ach::utility::to_string(error.reason) << "\n"
+		"context state: " << ach::utility::to_string(error.context_state) << "\n"
+		"preprocessor state: " << ach::utility::to_string(error.preprocessor_state) << "\n";
 
 	ss << "last semantic tokens:";
 	if (error.last_semantic_tokens.empty())
