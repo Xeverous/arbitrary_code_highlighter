@@ -1,6 +1,5 @@
 project(pyach)
 
-add_subdirectory(pybind11)
 pybind11_add_module(pyach binding.cpp)
 target_link_libraries(pyach PRIVATE ach_core)
 

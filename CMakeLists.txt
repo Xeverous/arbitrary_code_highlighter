@@ -56,5 +56,9 @@ endif()
 
 ##############################################################################
 
+if(ACH_BUILD_PYTHON_MODULE)
+	add_subdirectory(external/pybind11)
+endif()
+
 add_subdirectory(external/enum.hpp)
 add_subdirectory(src)
