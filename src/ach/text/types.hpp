@@ -1,7 +1,5 @@
 #pragma once
 
-#include <ach/utility/range.hpp>
-
 #include <cassert>
 #include <string_view>
 #include <tuple>
@@ -122,7 +120,26 @@ private:
 	struct span m_span;
 };
 
-using range = utility::range<position>;
+struct range
+{
+	position first;
+	position last;
+
+	bool empty() const
+	{
+		return first == last;
+	}
+};
+
+constexpr bool operator==(range lhs, range rhs)
+{
+	return lhs.first == rhs.first && lhs.last == rhs.last;
+}
+
+constexpr bool operator!=(range lhs, range rhs)
+{
+	return !(lhs == rhs);
+}
 
 struct fragment
 {
