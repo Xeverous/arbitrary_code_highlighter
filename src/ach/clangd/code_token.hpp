@@ -3,6 +3,7 @@
 #include <ach/clangd/semantic_token.hpp>
 #include <ach/text/types.hpp>
 #include <ach/utility/enum.hpp>
+#include <ach/utility/visitor.hpp>
 
 #include <variant>
 #include <ostream>
@@ -101,11 +102,22 @@ struct code_token
 	text::fragment origin;
 };
 
+constexpr bool operator==(code_token lhs, code_token rhs)
+{
+	return lhs.token_type == rhs.token_type && lhs.origin == rhs.origin;
+}
+
+constexpr bool operator!=(code_token lhs, code_token rhs)
+{
+	return !(lhs == rhs);
+}
+
 inline std::ostream& operator<<(std::ostream& os, code_token token)
 {
 	os << token.origin;
-	return std::visit([&os](auto token) -> std::ostream& {
-		return os << token;
+	return std::visit(utility::visitor{
+		[&os](syntax_token token) -> std::ostream& { return os << "syntax token: " << token << "\n"; },
+		[&os](identifier_token token) -> std::ostream& { return os << token; }
 	}, token.token_type);
 }
 
