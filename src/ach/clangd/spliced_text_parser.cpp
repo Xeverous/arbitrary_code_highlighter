@@ -471,8 +471,7 @@ text::fragment spliced_text_parser::parse_symbols()
 		return c == '!' || c == '%' || c == '&'
 		|| (0x28 <= c && c <= 0x2f) // '(', ')', '*', '+', ',', '-', '.', '/'
 		|| (0x3a <= c && c <= 0x3f) // ':', ';', '<', '=', '>', '?'
-		|| c == '[' || c == ']' || c == '^' || c == '_'
-		|| c == '{' || c == '|' || c == '}' || c == '~';
+		|| c == '[' || c == ']' || c == '^' || c == '{' || c == '|' || c == '}' || c == '~';
 	}} - parsers::literal_string{"//"} - parsers::literal_string{"/*"}));
 }
 
