@@ -144,14 +144,34 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 		return true;
 	}
 
+	struct test_code_token
+	{
+		code_token_type token_type;
+		std::string_view str; // text positions will be calculated based on string contents
+	};
+
+	code_token make_code_token(test_code_token test_token, text::position current_position)
+	{
+		text::text_iterator it(test_token.str.data(), current_position);
+		const auto last = test_token.str.data() + test_token.str.size();
+		while (it.pointer() != last)
+			++it;
+
+		return code_token{
+			test_token.token_type,
+			text::fragment{test_token.str, text::range{current_position, it.position()}}
+		};
+	}
+
 	boost::test_tools::assertion_result test_code_tokenizer(
 		std::string_view input,
 		const std::vector<semantic_token>& sem_tokens,
-		const std::vector<code_token>& expected_code_tokens)
+		const std::vector<test_code_token>& test_tokens)
 	{
 		auto tokenizer = make_code_tokenizer(input, {sem_tokens.data(), sem_tokens.data() + sem_tokens.size()});
+		text::position current_position = {};
 
-		for (std::size_t i = 0; i < expected_code_tokens.size(); ++i) {
+		for (std::size_t i = 0; i < test_tokens.size(); ++i) {
 			std::variant<code_token, highlighter_error> token_or_error = tokenizer.next_code_token(
 				{keywords.begin(), keywords.begin() + keywords.size()});
 
@@ -162,7 +182,9 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 				return result;
 			}
 
-			BOOST_TEST(compare_tokens(expected_code_tokens[i], std::get<code_token>(token_or_error)));
+			code_token expected_code_token = make_code_token(test_tokens[i], current_position);
+			current_position = expected_code_token.origin.r.last;
+			BOOST_TEST(compare_tokens(expected_code_token, std::get<code_token>(token_or_error)));
 		}
 
 		if (!tokenizer.has_reached_end()) {
@@ -179,8 +201,19 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 	BOOST_AUTO_TEST_CASE(empty_input)
 	{
 		test_code_tokenizer("", {}, {
-			code_token{syntax_token::end_of_input, {std::string_view(), text::range{}}}}
-		);
+			test_code_token{syntax_token::end_of_input, std::string_view()}
+		});
+	}
+
+	BOOST_AUTO_TEST_CASE(pp_include)
+	{
+		test_code_tokenizer("#include <iostream>", {}, {
+			test_code_token{syntax_token::preprocessor_hash, std::string_view("#")},
+			test_code_token{syntax_token::preprocessor_directive, std::string_view("include")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::preprocessor_header_file, std::string_view("<iostream>")},
+			test_code_token{syntax_token::end_of_input, std::string_view()}
+		});
 	}
 
 BOOST_AUTO_TEST_SUITE_END()
