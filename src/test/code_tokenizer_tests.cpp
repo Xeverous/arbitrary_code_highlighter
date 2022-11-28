@@ -215,7 +215,6 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 		});
 	}
 
-	// test preprocessor object-like macro
 	BOOST_AUTO_TEST_CASE(pp_object_like_macro)
 	{
 		test_code_tokenizer("#define MACRO f(__FILE__, __LINE__)", {}, {
@@ -231,6 +230,106 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 			test_code_token{syntax_token::whitespace, std::string_view(" ")},
 			test_code_token{syntax_token::preprocessor_macro_body, std::string_view("__LINE__")},
 			test_code_token{syntax_token::preprocessor_macro_body, std::string_view(")")},
+			test_code_token{syntax_token::end_of_input, std::string_view()}
+		});
+	}
+
+	BOOST_AUTO_TEST_CASE(pp_function_like_macro_multiple_params_with_ellipsis)
+	{
+		std::string_view input =
+			"#define MACRO ( x , yy , zzz, ...) \\\n"
+			"\tf1(x, yy); \\\n"
+			"\tf2(yy, zzz); \\\n"
+			"\tf3(x, zzz)";
+
+		test_code_tokenizer(input, {}, {
+			test_code_token{syntax_token::preprocessor_hash, std::string_view("#")},
+			test_code_token{syntax_token::preprocessor_directive, std::string_view("define")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::preprocessor_macro, std::string_view("MACRO")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::nothing_special, std::string_view("(")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::preprocessor_macro_param, std::string_view("x")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::nothing_special, std::string_view(",")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::preprocessor_macro_param, std::string_view("yy")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::nothing_special, std::string_view(",")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::preprocessor_macro_param, std::string_view("zzz")},
+			test_code_token{syntax_token::nothing_special, std::string_view(",")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::nothing_special, std::string_view("...")},
+			test_code_token{syntax_token::nothing_special, std::string_view(")")},
+			test_code_token{syntax_token::whitespace, std::string_view(" \\\n\t")},
+			test_code_token{syntax_token::preprocessor_macro_body, std::string_view("f1")},
+			test_code_token{syntax_token::preprocessor_macro_body, std::string_view("(")},
+			test_code_token{syntax_token::preprocessor_macro_param, std::string_view("x")},
+			test_code_token{syntax_token::preprocessor_macro_body, std::string_view(",")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::preprocessor_macro_param, std::string_view("yy")},
+			test_code_token{syntax_token::preprocessor_macro_body, std::string_view(");")},
+			test_code_token{syntax_token::whitespace, std::string_view(" \\\n\t")},
+			test_code_token{syntax_token::preprocessor_macro_body, std::string_view("f2")},
+			test_code_token{syntax_token::preprocessor_macro_body, std::string_view("(")},
+			test_code_token{syntax_token::preprocessor_macro_param, std::string_view("yy")},
+			test_code_token{syntax_token::preprocessor_macro_body, std::string_view(",")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::preprocessor_macro_param, std::string_view("zzz")},
+			test_code_token{syntax_token::preprocessor_macro_body, std::string_view(");")},
+			test_code_token{syntax_token::whitespace, std::string_view(" \\\n\t")},
+			test_code_token{syntax_token::preprocessor_macro_body, std::string_view("f3")},
+			test_code_token{syntax_token::preprocessor_macro_body, std::string_view("(")},
+			test_code_token{syntax_token::preprocessor_macro_param, std::string_view("x")},
+			test_code_token{syntax_token::preprocessor_macro_body, std::string_view(",")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::preprocessor_macro_param, std::string_view("zzz")},
+			test_code_token{syntax_token::preprocessor_macro_body, std::string_view(")")},
+			test_code_token{syntax_token::end_of_input, std::string_view()}
+		});
+	}
+
+	BOOST_AUTO_TEST_CASE(pp_function_like_macro_with_stringize)
+	{
+		std::string_view input =
+			"#define PRINT(x) \\\n"
+			"\tstd::cout << #x \" = \" << (x) << \"\\n\"";
+
+		test_code_tokenizer(input, {}, {
+			test_code_token{syntax_token::preprocessor_hash, std::string_view("#")},
+			test_code_token{syntax_token::preprocessor_directive, std::string_view("define")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::preprocessor_macro, std::string_view("PRINT")},
+			test_code_token{syntax_token::nothing_special, std::string_view("(")},
+			test_code_token{syntax_token::preprocessor_macro_param, std::string_view("x")},
+			test_code_token{syntax_token::nothing_special, std::string_view(")")},
+			test_code_token{syntax_token::whitespace, std::string_view(" \\\n\t")},
+			test_code_token{syntax_token::preprocessor_macro_body, std::string_view("std")},
+			test_code_token{syntax_token::preprocessor_macro_body, std::string_view("::")},
+			test_code_token{syntax_token::preprocessor_macro_body, std::string_view("cout")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::preprocessor_macro_body, std::string_view("<<")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::preprocessor_hash, std::string_view("#")},
+			test_code_token{syntax_token::preprocessor_macro_param, std::string_view("x")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::literal_string_begin, std::string_view("\"")},
+			test_code_token{syntax_token::nothing_special, std::string_view(" = ")},
+			test_code_token{syntax_token::literal_text_end, std::string_view("\"")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::preprocessor_macro_body, std::string_view("<<")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::preprocessor_macro_body, std::string_view("(")},
+			test_code_token{syntax_token::preprocessor_macro_param, std::string_view("x")},
+			test_code_token{syntax_token::preprocessor_macro_body, std::string_view(")")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::preprocessor_macro_body, std::string_view("<<")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::literal_string_begin, std::string_view("\"")},
+			test_code_token{syntax_token::escape_sequence, std::string_view("\\n")},
+			test_code_token{syntax_token::literal_text_end, std::string_view("\"")},
 			test_code_token{syntax_token::end_of_input, std::string_view()}
 		});
 	}
@@ -252,9 +351,10 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 		});
 	}
 
+	// test multiple keywords, unknown identifier, symbol, C++14 literal and literal suffix
 	BOOST_AUTO_TEST_CASE(var_definition)
 	{
-		test_code_tokenizer("const long long x = 123'456'789;", {}, {
+		test_code_tokenizer("const long long x = 123'456'789ll;", {}, {
 			test_code_token{syntax_token::keyword, std::string_view("const")},
 			test_code_token{syntax_token::whitespace, std::string_view(" ")},
 			test_code_token{syntax_token::keyword, std::string_view("long")},
@@ -266,6 +366,7 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 			test_code_token{syntax_token::nothing_special, std::string_view("=")},
 			test_code_token{syntax_token::whitespace, std::string_view(" ")},
 			test_code_token{syntax_token::literal_number, std::string_view("123'456'789")},
+			test_code_token{syntax_token::literal_suffix, std::string_view("ll")},
 			test_code_token{syntax_token::nothing_special, std::string_view(";")},
 			test_code_token{syntax_token::end_of_input, std::string_view()}
 		});
