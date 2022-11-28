@@ -375,6 +375,13 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_cont
 			on_parsed_newline();
 			return code_token{syntax_token::comment_end, newline};
 		}
+
+		// end of file should also close comments
+		// this is needed to emit comment_end before context-none code emits end_of_input
+		if (has_reached_end()) {
+			m_context_state = context_state_t::none;
+			return code_token{syntax_token::comment_end, empty_match()};
+		}
 	}
 
 	return make_error(error_reason::internal_error_unhandled_comment);

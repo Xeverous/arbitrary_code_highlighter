@@ -133,11 +133,9 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 
 	boost::test_tools::assertion_result compare_tokens(code_token expected, code_token actual)
 	{
-		BOOST_TEST(expected.origin == actual.origin);
-
-		if (expected.token_type != actual.token_type) {
+		if (expected != actual) {
 			boost::test_tools::assertion_result result = false;
-			result.message().stream() << "tokens differ\nEXPECTED:\n" << expected << "ACTUAL:\n" << actual;
+			result.message().stream() << "tokens differ:\nEXPECTED:\n" << expected << "ACTUAL:\n" << actual;
 			return result;
 		}
 
@@ -184,7 +182,7 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 
 			code_token expected_code_token = make_code_token(test_tokens[i], current_position);
 			current_position = expected_code_token.origin.r.last;
-			BOOST_TEST(compare_tokens(expected_code_token, std::get<code_token>(token_or_error)));
+			BOOST_TEST_REQUIRE(compare_tokens(expected_code_token, std::get<code_token>(token_or_error)));
 		}
 
 		if (!tokenizer.has_reached_end()) {
@@ -205,6 +203,7 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 		});
 	}
 
+	// tests most fundamental preprocessor parsing logic
 	BOOST_AUTO_TEST_CASE(pp_include)
 	{
 		test_code_tokenizer("#include <iostream>", {}, {
@@ -212,6 +211,62 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 			test_code_token{syntax_token::preprocessor_directive, std::string_view("include")},
 			test_code_token{syntax_token::whitespace, std::string_view(" ")},
 			test_code_token{syntax_token::preprocessor_header_file, std::string_view("<iostream>")},
+			test_code_token{syntax_token::end_of_input, std::string_view()}
+		});
+	}
+
+	// test preprocessor object-like macro
+	BOOST_AUTO_TEST_CASE(pp_object_like_macro)
+	{
+		test_code_tokenizer("#define MACRO f(__FILE__, __LINE__)", {}, {
+			test_code_token{syntax_token::preprocessor_hash, std::string_view("#")},
+			test_code_token{syntax_token::preprocessor_directive, std::string_view("define")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::preprocessor_macro, std::string_view("MACRO")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::preprocessor_macro_body, std::string_view("f")},
+			test_code_token{syntax_token::preprocessor_macro_body, std::string_view("(")},
+			test_code_token{syntax_token::preprocessor_macro_body, std::string_view("__FILE__")},
+			test_code_token{syntax_token::preprocessor_macro_body, std::string_view(",")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::preprocessor_macro_body, std::string_view("__LINE__")},
+			test_code_token{syntax_token::preprocessor_macro_body, std::string_view(")")},
+			test_code_token{syntax_token::end_of_input, std::string_view()}
+		});
+	}
+
+	// test syntax_token::preprocessor_other and
+	// the ability to emit syntax_token::comment_end upon encountering end of input
+	BOOST_AUTO_TEST_CASE(pp_pragma_and_comment)
+	{
+		test_code_tokenizer("#pragma once // comment", {}, {
+			test_code_token{syntax_token::preprocessor_hash, std::string_view("#")},
+			test_code_token{syntax_token::preprocessor_directive, std::string_view("pragma")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::preprocessor_other, std::string_view("once")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::comment_begin_single, std::string_view("//")},
+			test_code_token{syntax_token::nothing_special, std::string_view(" comment")},
+			test_code_token{syntax_token::comment_end, std::string_view()},
+			test_code_token{syntax_token::end_of_input, std::string_view()}
+		});
+	}
+
+	BOOST_AUTO_TEST_CASE(var_definition)
+	{
+		test_code_tokenizer("const long long x = 123'456'789;", {}, {
+			test_code_token{syntax_token::keyword, std::string_view("const")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::keyword, std::string_view("long")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::keyword, std::string_view("long")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::identifier_unknown, std::string_view("x")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::nothing_special, std::string_view("=")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::literal_number, std::string_view("123'456'789")},
+			test_code_token{syntax_token::nothing_special, std::string_view(";")},
 			test_code_token{syntax_token::end_of_input, std::string_view()}
 		});
 	}

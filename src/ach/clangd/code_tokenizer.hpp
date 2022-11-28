@@ -33,6 +33,8 @@ public:
 			return std::nullopt;
 	}
 
+	// note: this doesn't mean the parser is finished
+	// if it reaches end it may still emit some tokens (e.g. comment_end) before end_of_input
 	bool has_reached_end() const noexcept
 	{
 		return m_parser.has_reached_end();
@@ -58,7 +60,8 @@ public:
 		return m_preprocessor_state;
 	}
 
-	std::variant<code_token, highlighter_error> next_code_token(utility::range<const std::string*> keywords);
+	[[nodiscard]] std::variant<code_token, highlighter_error>
+	next_code_token(utility::range<const std::string*> keywords);
 
 private:
 	text::fragment empty_match() const noexcept
