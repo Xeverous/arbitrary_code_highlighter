@@ -17,6 +17,7 @@ ACH_RICH_ENUM_CLASS(error_reason,
 	(invalid_semantic_token_data)
 	(internal_error_missed_semantic_token)
 	(internal_error_unhandled_preprocessor)
+	(internal_error_unhandled_preprocessor_diagnostic_message)
 	(internal_error_unhandled_context)
 	(internal_error_unhandled_context_no_preprocessor)
 	(internal_error_unhandled_comment)

@@ -14,13 +14,14 @@ ACH_RICH_ENUM_CLASS(preprocessor_state_t,
 
 	(preprocessor_after_hash)
 
+	(preprocessor_after_include)
 	(preprocessor_after_define)
 	(preprocessor_after_define_identifier)
 	(preprocessor_after_define_identifier_paren_open)
 	(preprocessor_macro_body) // both object-like and function-like macros
-	(preprocessor_after_undef)
-	(preprocessor_after_include)
+	(preprocessor_after_ifdef_ifndef_elifdef_elifndef_undef)
 	(preprocessor_after_line)
+	(preprocessor_after_error_warning)
 	(preprocessor_after_other) // unrecognized directive, use generic coloring
 );
 

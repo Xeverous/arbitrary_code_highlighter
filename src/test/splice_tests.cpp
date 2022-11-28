@@ -188,7 +188,7 @@ BOOST_AUTO_TEST_SUITE(splice_utils)
 		BOOST_TEST(frag.r.first == (text::position{1, 9}));
 		BOOST_TEST(frag.r.last  == (text::position{1, 19}));
 
-		frag = parser.parse_newline();
+		frag = parser.parse_newlines();
 		BOOST_TEST(parser.current_position() == (text::position{2, 0}));
 		BOOST_TEST(frag.str == "\n");
 		BOOST_TEST(frag.r.first == (text::position{1, 19}));
@@ -224,7 +224,7 @@ BOOST_AUTO_TEST_SUITE(splice_utils)
 		BOOST_TEST(frag.r.first == (text::position{2, 21}));
 		BOOST_TEST(frag.r.last  == (text::position{2, 23}));
 
-		frag = parser.parse_newline();
+		frag = parser.parse_newlines();
 		BOOST_TEST(parser.current_position() == (text::position{3, 0}));
 		BOOST_TEST(frag.str == "\n");
 		BOOST_TEST(frag.r.first == (text::position{2, 23}));
@@ -254,7 +254,7 @@ BOOST_AUTO_TEST_SUITE(splice_utils)
 		BOOST_TEST(frag.r.first == (text::position{3, 8}));
 		BOOST_TEST(frag.r.last  == (text::position{3, 10}));
 
-		frag = parser.parse_newline();
+		frag = parser.parse_newlines();
 		BOOST_TEST(parser.current_position() == (text::position{4, 0}));
 		BOOST_TEST(frag.str == "\n");
 		BOOST_TEST(frag.r.first == (text::position{3, 10}));
@@ -266,7 +266,7 @@ BOOST_AUTO_TEST_SUITE(splice_utils)
 		BOOST_TEST(frag.r.first == (text::position{4, 0}));
 		BOOST_TEST(frag.r.last  == (text::position{4, 1}));
 
-		frag = parser.parse_newline();
+		frag = parser.parse_newlines();
 		BOOST_TEST(parser.current_position() == (text::position{5, 0}));
 		BOOST_TEST(frag.str == "\n");
 		BOOST_TEST(frag.r.first == (text::position{4, 1}));
@@ -326,7 +326,7 @@ BOOST_AUTO_TEST_SUITE(splice_utils)
 		BOOST_TEST(frag.r.first == (text::position{5, 19}));
 		BOOST_TEST(frag.r.last  == (text::position{5, 20}));
 
-		frag = parser.parse_newline();
+		frag = parser.parse_newlines();
 		BOOST_TEST(parser.current_position() == (text::position{6, 0}));
 		BOOST_TEST(frag.str == "\n");
 		BOOST_TEST(frag.r.first == (text::position{5, 20}));
@@ -386,7 +386,7 @@ BOOST_AUTO_TEST_SUITE(splice_utils)
 		BOOST_TEST(frag.r.first == (text::position{6, 20}));
 		BOOST_TEST(frag.r.last  == (text::position{6, 21}));
 
-		frag = parser.parse_newline();
+		frag = parser.parse_newlines();
 		BOOST_TEST(parser.current_position() == (text::position{7, 0}));
 		BOOST_TEST(frag.str == "\n");
 		BOOST_TEST(frag.r.first == (text::position{6, 21}));
@@ -464,7 +464,7 @@ BOOST_AUTO_TEST_SUITE(splice_utils)
 		BOOST_TEST(frag.r.first == (text::position{7, 18}));
 		BOOST_TEST(frag.r.last  == (text::position{7, 19}));
 
-		frag = parser.parse_newline();
+		frag = parser.parse_newlines();
 		BOOST_TEST(parser.current_position() == (text::position{8, 0}));
 		BOOST_TEST(frag.str == "\n");
 		BOOST_TEST(frag.r.first == (text::position{7, 19}));
@@ -476,7 +476,7 @@ BOOST_AUTO_TEST_SUITE(splice_utils)
 		BOOST_TEST(frag.r.first == (text::position{8, 0}));
 		BOOST_TEST(frag.r.last  == (text::position{8, 1}));
 
-		frag = parser.parse_newline();
+		frag = parser.parse_newlines();
 		BOOST_TEST(parser.current_position() == (text::position{9, 0}));
 		BOOST_TEST(frag.str == "\n");
 		BOOST_TEST(frag.r.first == (text::position{8, 1}));

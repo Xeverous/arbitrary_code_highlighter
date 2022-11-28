@@ -353,8 +353,88 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 		});
 	}
 
+	// test a string literal in preprocessor directive
+	BOOST_AUTO_TEST_CASE(pp_file_and_string_literal)
+	{
+		test_code_tokenizer("#file \"main.cpp\" 1", {}, {
+			test_code_token{syntax_token::preprocessor_hash, std::string_view("#")},
+			test_code_token{syntax_token::preprocessor_directive, std::string_view("file")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::literal_string, std::string_view("\"main.cpp\"")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::literal_number, std::string_view("1")},
+			test_code_token{syntax_token::end_of_input, std::string_view()}
+		});
+	}
+
+	BOOST_AUTO_TEST_CASE(pp_error_and_empty_directives)
+	{
+		std::string_view input =
+			"#\n"
+			"#ifdef BUILD_CONFIG\n"
+			"#  undef BUILD_BUG\n"
+			"#else\n"
+			"#\n"
+			"\n"
+			"#  error 'whatever\" possibly q'uoted\n"
+			"#endif\n";
+
+		test_code_tokenizer(input, {}, {
+			test_code_token{syntax_token::preprocessor_hash, std::string_view("#")},
+			test_code_token{syntax_token::whitespace, std::string_view("\n")},
+			test_code_token{syntax_token::preprocessor_hash, std::string_view("#")},
+			test_code_token{syntax_token::preprocessor_directive, std::string_view("ifdef")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::preprocessor_macro, std::string_view("BUILD_CONFIG")},
+			test_code_token{syntax_token::whitespace, std::string_view("\n")},
+			test_code_token{syntax_token::preprocessor_hash, std::string_view("#")},
+			test_code_token{syntax_token::whitespace, std::string_view("  ")},
+			test_code_token{syntax_token::preprocessor_directive, std::string_view("undef")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::preprocessor_macro, std::string_view("BUILD_BUG")},
+			test_code_token{syntax_token::whitespace, std::string_view("\n")},
+			test_code_token{syntax_token::preprocessor_hash, std::string_view("#")},
+			test_code_token{syntax_token::preprocessor_directive, std::string_view("else")},
+			test_code_token{syntax_token::whitespace, std::string_view("\n")},
+			test_code_token{syntax_token::preprocessor_hash, std::string_view("#")},
+			test_code_token{syntax_token::whitespace, std::string_view("\n\n")},
+			test_code_token{syntax_token::preprocessor_hash, std::string_view("#")},
+			test_code_token{syntax_token::whitespace, std::string_view("  ")},
+			test_code_token{syntax_token::preprocessor_directive, std::string_view("error")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::preprocessor_other, std::string_view("'whatever\" possibly q'uoted")},
+			test_code_token{syntax_token::whitespace, std::string_view("\n")},
+			test_code_token{syntax_token::preprocessor_hash, std::string_view("#")},
+			test_code_token{syntax_token::preprocessor_directive, std::string_view("endif")},
+			test_code_token{syntax_token::whitespace, std::string_view("\n")},
+			test_code_token{syntax_token::end_of_input, std::string_view()}
+		});
+	}
+
+	// (this is valid code, comments behaviorally act as a single space)
+	BOOST_AUTO_TEST_CASE(pp_and_multiline_comment)
+	{
+		std::string_view input =
+			"#include \\\n"
+			"/*\n"
+			" * text\n"
+			" */ <string>";
+
+		test_code_tokenizer(input, {}, {
+			test_code_token{syntax_token::preprocessor_hash, std::string_view("#")},
+			test_code_token{syntax_token::preprocessor_directive, std::string_view("include")},
+			test_code_token{syntax_token::whitespace, std::string_view(" \\\n")},
+			test_code_token{syntax_token::comment_begin_multi, std::string_view("/*")},
+			test_code_token{syntax_token::nothing_special, std::string_view("\n * text\n ")},
+			test_code_token{syntax_token::comment_end, std::string_view("*/")},
+			test_code_token{syntax_token::whitespace, std::string_view(" ")},
+			test_code_token{syntax_token::preprocessor_header_file, std::string_view("<string>")},
+			test_code_token{syntax_token::end_of_input, std::string_view()}
+		});
+	}
+
 	// test multiple keywords, unknown identifier, symbol, C++14 literal and literal suffix
-	BOOST_AUTO_TEST_CASE(var_definition)
+	BOOST_AUTO_TEST_CASE(var_definition_and_literal_suffix)
 	{
 		test_code_tokenizer("const long long x = 123'456'789ll;", {}, {
 			test_code_token{syntax_token::keyword, std::string_view("const")},
@@ -370,6 +450,20 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 			test_code_token{syntax_token::literal_number, std::string_view("123'456'789")},
 			test_code_token{syntax_token::literal_suffix, std::string_view("ll")},
 			test_code_token{syntax_token::nothing_special, std::string_view(";")},
+			test_code_token{syntax_token::end_of_input, std::string_view()}
+		});
+	}
+
+	BOOST_AUTO_TEST_CASE(literal_prefix)
+	{
+		test_code_tokenizer("f(L'\0');", {}, {
+			test_code_token{syntax_token::identifier_unknown, std::string_view("f")},
+			test_code_token{syntax_token::nothing_special, std::string_view("(")},
+			test_code_token{syntax_token::literal_prefix, std::string_view("L")},
+			test_code_token{syntax_token::literal_char_begin, std::string_view("'")},
+			test_code_token{syntax_token::escape_sequence, std::string_view("\0")},
+			test_code_token{syntax_token::literal_text_end, std::string_view("'")},
+			test_code_token{syntax_token::nothing_special, std::string_view(");")},
 			test_code_token{syntax_token::end_of_input, std::string_view()}
 		});
 	}

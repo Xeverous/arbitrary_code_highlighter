@@ -35,10 +35,9 @@ public:
 
 	text::fragment parse_exactly(char c);
 	text::fragment parse_exactly(std::string_view str);
-	text::fragment parse_newline()
-	{
-		return parse_exactly('\n');
-	}
+	text::fragment parse_newlines();
+
+	text::fragment parse_preprocessor_diagnostic_message();
 
 	text::fragment parse_non_newline_whitespace();
 	text::fragment parse_digits();

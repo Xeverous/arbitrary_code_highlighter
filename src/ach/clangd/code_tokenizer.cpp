@@ -28,14 +28,26 @@ bool matches_semantic_tokens(text::fragment identifier, utility::range<const sem
 
 preprocessor_state_t preprocessor_directive_to_state(std::string_view directive)
 {
-	if (compare_spliced_with_raw(directive, "define"))
-		return preprocessor_state_t::preprocessor_after_define;
-	else if (compare_spliced_with_raw(directive, "undef"))
-		return preprocessor_state_t::preprocessor_after_undef;
-	else if (compare_spliced_with_raw(directive, "include"))
+	if (compare_spliced_with_raw(directive, "include"))
 		return preprocessor_state_t::preprocessor_after_include;
+	else if (compare_spliced_with_raw(directive, "define"))
+		return preprocessor_state_t::preprocessor_after_define;
+	else if (compare_spliced_with_raw(directive, "ifdef"))
+		return preprocessor_state_t::preprocessor_after_ifdef_ifndef_elifdef_elifndef_undef;
+	else if (compare_spliced_with_raw(directive, "ifndef"))
+		return preprocessor_state_t::preprocessor_after_ifdef_ifndef_elifdef_elifndef_undef;
+	else if (compare_spliced_with_raw(directive, "elifdef"))
+		return preprocessor_state_t::preprocessor_after_ifdef_ifndef_elifdef_elifndef_undef;
+	else if (compare_spliced_with_raw(directive, "elifndef"))
+		return preprocessor_state_t::preprocessor_after_ifdef_ifndef_elifdef_elifndef_undef;
+	else if (compare_spliced_with_raw(directive, "undef"))
+		return preprocessor_state_t::preprocessor_after_ifdef_ifndef_elifdef_elifndef_undef;
 	else if (compare_spliced_with_raw(directive, "line"))
 		return preprocessor_state_t::preprocessor_after_line;
+	else if (compare_spliced_with_raw(directive, "error"))
+		return preprocessor_state_t::preprocessor_after_error_warning;
+	else if (compare_spliced_with_raw(directive, "warning"))
+		return preprocessor_state_t::preprocessor_after_error_warning;
 	else
 		return preprocessor_state_t::preprocessor_after_other;
 }
@@ -221,9 +233,9 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_cont
 		return code_token{syntax_token::whitespace, whitespace};
 	}
 
-	if (text::fragment newline = m_parser.parse_newline(); !newline.empty()) {
+	if (text::fragment newlines = m_parser.parse_newlines(); !newlines.empty()) {
 		on_parsed_newline();
-		return code_token{syntax_token::whitespace, newline};
+		return code_token{syntax_token::whitespace, newlines};
 	}
 
 	switch (m_preprocessor_state) {
@@ -291,7 +303,7 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_cont
 
 			return make_error(error_reason::syntax_error);
 		}
-		case preprocessor_state_t::preprocessor_after_undef: {
+		case preprocessor_state_t::preprocessor_after_ifdef_ifndef_elifdef_elifndef_undef: {
 			if (text::fragment identifier = m_parser.parse_identifier(); !identifier.empty()) {
 				return code_token{syntax_token::preprocessor_macro, identifier};
 			}
@@ -308,6 +320,15 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_cont
 			}
 
 			return make_error(error_reason::syntax_error);
+		}
+		case preprocessor_state_t::preprocessor_after_error_warning: {
+			// because these can have arbitrary syntax (excluding comments) there is special parsing call and
+			// the result is always emitted as preprocessor_other (it may contain broken parens and quotes)
+			if (text::fragment text = m_parser.parse_preprocessor_diagnostic_message(); !text.empty()) {
+				return code_token{syntax_token::preprocessor_other, text};
+			}
+
+			return make_error(error_reason::internal_error_unhandled_preprocessor_diagnostic_message);
 		}
 		case preprocessor_state_t::preprocessor_after_line:
 		case preprocessor_state_t::preprocessor_after_other: {
@@ -370,10 +391,10 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_cont
 				return code_token{syntax_token::nothing_special, comment_body};
 		}
 
-		if (text::fragment newline = m_parser.parse_newline(); !newline.empty()) {
+		if (text::fragment newlines = m_parser.parse_newlines(); !newlines.empty()) {
 			m_context_state = context_state_t::none;
 			on_parsed_newline();
-			return code_token{syntax_token::comment_end, newline};
+			return code_token{syntax_token::comment_end, newlines};
 		}
 
 		// end of file should also close comments

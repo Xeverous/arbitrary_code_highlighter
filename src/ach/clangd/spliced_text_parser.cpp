@@ -401,6 +401,20 @@ text::fragment spliced_text_parser::parse_exactly(std::string_view str)
 	return parse(parsers::literal_string{str});
 }
 
+text::fragment spliced_text_parser::parse_newlines()
+{
+	return parse(+(parsers::literal_char{'\n'} | parsers::literal_string{"\r\n"}));
+}
+
+text::fragment spliced_text_parser::parse_preprocessor_diagnostic_message()
+{
+	return parse(+(parsers::any_char{}
+		- parsers::literal_char{'\n'}
+		- parsers::literal_string{"//"}
+		- parsers::literal_string{"/*"}
+	));
+}
+
 text::fragment spliced_text_parser::parse_non_newline_whitespace()
 {
 	return parse(+parsers::specific_char{function_to_function_object(text::is_non_newline_whitespace)});
