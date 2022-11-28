@@ -338,13 +338,15 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 	// the ability to emit syntax_token::comment_end upon encountering end of input
 	BOOST_AUTO_TEST_CASE(pp_pragma_and_comment)
 	{
-		test_code_tokenizer("#pragma once // comment", {}, {
+		test_code_tokenizer("#pragma once // TODO comment", {}, {
 			test_code_token{syntax_token::preprocessor_hash, std::string_view("#")},
 			test_code_token{syntax_token::preprocessor_directive, std::string_view("pragma")},
 			test_code_token{syntax_token::whitespace, std::string_view(" ")},
 			test_code_token{syntax_token::preprocessor_other, std::string_view("once")},
 			test_code_token{syntax_token::whitespace, std::string_view(" ")},
 			test_code_token{syntax_token::comment_begin_single, std::string_view("//")},
+			test_code_token{syntax_token::nothing_special, std::string_view(" ")},
+			test_code_token{syntax_token::comment_tag_todo, std::string_view("TODO")},
 			test_code_token{syntax_token::nothing_special, std::string_view(" comment")},
 			test_code_token{syntax_token::comment_end, std::string_view()},
 			test_code_token{syntax_token::end_of_input, std::string_view()}
