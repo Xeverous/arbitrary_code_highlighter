@@ -462,7 +462,7 @@ text::fragment spliced_text_parser::parse_text_literal_prefix(char quote)
 
 text::fragment spliced_text_parser::parse_raw_string_literal_prefix()
 {
-	return parse(parsers::text_literal_prefix >> parsers::literal_char{'R'} >> &parsers::literal_char{'"'});
+	return parse(-parsers::text_literal_prefix >> parsers::literal_char{'R'} >> &parsers::literal_char{'"'});
 }
 
 text::fragment spliced_text_parser::parse_raw_string_literal_delimeter_open()
