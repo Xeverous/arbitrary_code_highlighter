@@ -553,7 +553,7 @@ text::fragment spliced_text_parser::parse_escape_sequence()
 
 text::fragment spliced_text_parser::parse_text_literal_body(char delimeter)
 {
-	return parse(+(parsers::any_char{} - parsers::literal_char{delimeter}));
+	return parse(+(parsers::any_char{} - parsers::literal_char{'\\'} - parsers::literal_char{delimeter}));
 }
 
 text::fragment spliced_text_parser::return_parse_result(bool is_success, spliced_text_iterator updated_iterator)

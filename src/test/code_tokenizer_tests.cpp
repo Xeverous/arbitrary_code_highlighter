@@ -495,14 +495,35 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 		});
 	}
 
+	BOOST_AUTO_TEST_CASE(literal_suffix)
+	{
+		test_code_tokenizer(R"(f(u8"w\0x\"y\xffz"s);)", {}, {
+			test_code_token{syntax_token::identifier_unknown, std::string_view("f")},
+			test_code_token{syntax_token::nothing_special, std::string_view("(")},
+			test_code_token{syntax_token::literal_prefix, std::string_view("u8")},
+			test_code_token{syntax_token::literal_string_begin, std::string_view("\"")},
+			test_code_token{syntax_token::nothing_special, std::string_view("w")},
+			test_code_token{syntax_token::escape_sequence, std::string_view("\\0")},
+			test_code_token{syntax_token::nothing_special, std::string_view("x")},
+			test_code_token{syntax_token::escape_sequence, std::string_view("\\\"")},
+			test_code_token{syntax_token::nothing_special, std::string_view("y")},
+			test_code_token{syntax_token::escape_sequence, std::string_view("\\xff")},
+			test_code_token{syntax_token::nothing_special, std::string_view("z")},
+			test_code_token{syntax_token::literal_text_end, std::string_view("\"")},
+			test_code_token{syntax_token::literal_suffix, std::string_view("s")},
+			test_code_token{syntax_token::nothing_special, std::string_view(");")},
+			test_code_token{syntax_token::end_of_input, std::string_view()}
+		});
+	}
+
 	BOOST_AUTO_TEST_CASE(raw_string_literal)
 	{
-		std::string_view input = R"(f(R"test(raw\nstring\nliteral)test");)";
+		std::string_view input = R"(f(u8R"test(raw\nstring\nliteral)test");)";
 
 		test_code_tokenizer(input, {}, {
 			test_code_token{syntax_token::identifier_unknown, std::string_view("f")},
 			test_code_token{syntax_token::nothing_special, std::string_view("(")},
-			test_code_token{syntax_token::literal_prefix, std::string_view("R")},
+			test_code_token{syntax_token::literal_prefix, std::string_view("u8R")},
 			test_code_token{syntax_token::literal_string_raw_quote, std::string_view("\"")},
 			test_code_token{syntax_token::literal_string_raw_delimeter, std::string_view("test")},
 			test_code_token{syntax_token::literal_string_raw_paren, std::string_view("(")},
