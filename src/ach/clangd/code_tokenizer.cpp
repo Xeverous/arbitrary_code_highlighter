@@ -263,7 +263,10 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_cont
 		case preprocessor_state_t::preprocessor_after_define: {
 			if (text::fragment identifier = m_parser.parse_identifier(); !identifier.empty()) {
 				m_preprocessor_state = preprocessor_state_t::preprocessor_after_define_identifier;
-				return code_token{syntax_token::preprocessor_macro, identifier};
+				if (matches_semantic_tokens(identifier, m_current_semantic_tokens))
+					return make_code_token_from_semantic_tokens(identifier);
+				else
+					return code_token{syntax_token::preprocessor_macro, identifier};
 			}
 
 			return make_error(error_reason::syntax_error);
@@ -478,14 +481,7 @@ code_tokenizer::next_code_token_basic(utility::range<const std::string*> keyword
 			// is a special identifier with context-dependent meaning).
 			// In such case assume the identifier does not function as a keyword
 			// and report it according to the semantic token information.
-			assert(!m_current_semantic_tokens.empty());
-			auto token = identifier_token{
-				m_current_semantic_tokens.first->info,
-				m_current_semantic_tokens.first->color_variance
-			};
-			if (!advance_semantic_tokens())
-				return make_error(error_reason::invalid_semantic_token_data);
-			return code_token{token, identifier};
+			return make_code_token_from_semantic_tokens(identifier);
 		}
 		else {
 			if (is_keyword(identifier.str, keywords))
@@ -519,6 +515,21 @@ code_tokenizer::next_code_token_basic(utility::range<const std::string*> keyword
 	}
 
 	return make_error(error_reason::syntax_error);
+}
+
+std::variant<code_token, highlighter_error>
+code_tokenizer::make_code_token_from_semantic_tokens(text::fragment identifier)
+{
+	assert(!m_current_semantic_tokens.empty());
+	auto token = identifier_token{
+		m_current_semantic_tokens.first->info,
+		m_current_semantic_tokens.first->color_variance
+	};
+
+	if (!advance_semantic_tokens())
+		return make_error(error_reason::invalid_semantic_token_data);
+
+	return code_token{token, identifier};
 }
 
 }

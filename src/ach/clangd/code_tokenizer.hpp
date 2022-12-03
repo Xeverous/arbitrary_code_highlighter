@@ -93,6 +93,9 @@ private:
 	[[nodiscard]] std::variant<code_token, highlighter_error>
 	next_code_token_basic(utility::range<const std::string*> keywords, bool inside_macro_body);
 
+	[[nodiscard]] std::variant<code_token, highlighter_error>
+	make_code_token_from_semantic_tokens(text::fragment identifier);
+
 	bool is_in_macro_params(std::string_view param) const
 	{
 		for (auto p : m_preprocessor_macro_params)
