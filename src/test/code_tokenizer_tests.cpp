@@ -131,17 +131,6 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 		return *std::move(result);
 	}
 
-	boost::test_tools::assertion_result compare_tokens(code_token expected, code_token actual)
-	{
-		if (expected != actual) {
-			boost::test_tools::assertion_result result = false;
-			result.message().stream() << "tokens differ:\nEXPECTED:\n" << expected << "ACTUAL:\n" << actual;
-			return result;
-		}
-
-		return true;
-	}
-
 	struct test_code_token
 	{
 		code_token_type token_type;
@@ -161,7 +150,13 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 		};
 	}
 
-	boost::test_tools::assertion_result test_code_tokenizer(
+	void print_semantic_tokens(std::ostream& os, utility::range<const semantic_token*> sem_tokens)
+	{
+		for (auto it = sem_tokens.first; it != sem_tokens.last; ++it)
+			os << *it << "\n";
+	}
+
+	boost::test_tools::assertion_result test_code_tokenizer_impl(
 		std::string_view input,
 		const std::vector<semantic_token>& sem_tokens,
 		const std::vector<test_code_token>& test_tokens)
@@ -170,6 +165,13 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 		text::position current_position = {};
 
 		for (std::size_t i = 0; i < test_tokens.size(); ++i) {
+			if (current_position != tokenizer.current_position()) {
+				boost::test_tools::assertion_result result = false;
+				result.message().stream() << "positions differ! test position: " << current_position
+					<< "tokenizer position: " << tokenizer.current_position();
+				return result;
+			}
+
 			std::variant<code_token, highlighter_error> token_or_error = tokenizer.next_code_token(
 				{keywords.begin(), keywords.begin() + keywords.size()});
 
@@ -180,9 +182,19 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 				return result;
 			}
 
-			code_token expected_code_token = make_code_token(test_tokens[i], current_position);
+			auto expected_code_token = make_code_token(test_tokens[i], current_position);
+			auto actual_code_token = std::get<code_token>(token_or_error);
 			current_position = expected_code_token.origin.r.last;
-			BOOST_TEST_REQUIRE(compare_tokens(expected_code_token, std::get<code_token>(token_or_error)));
+
+			if (expected_code_token != actual_code_token) {
+				boost::test_tools::assertion_result result = false;
+				result.message().stream() << "tokens differ:\n"
+					"EXPECTED:\n" << expected_code_token << "ACTUAL:\n" << actual_code_token
+					<< "current semantic tokens:\n";
+
+				print_semantic_tokens(result.message().stream(), tokenizer.current_semantic_tokens());
+				return result;
+			}
 		}
 
 		if (!tokenizer.has_reached_end()) {
@@ -193,7 +205,22 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 			return result;
 		}
 
+		if (!tokenizer.current_semantic_tokens().empty()) {
+			boost::test_tools::assertion_result result = false;
+			result.message().stream() << "tokenizer reached end but did not exhaust semantic tokens:\n";
+			print_semantic_tokens(result.message().stream(), tokenizer.current_semantic_tokens());
+			return result;
+		}
+
 		return true;
+	}
+
+	void test_code_tokenizer(
+		std::string_view input,
+		const std::vector<semantic_token>& sem_tokens,
+		const std::vector<test_code_token>& test_tokens)
+	{
+		BOOST_TEST(test_code_tokenizer_impl(input, sem_tokens, test_tokens));
 	}
 
 	BOOST_AUTO_TEST_CASE(empty_input)
@@ -456,12 +483,12 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 
 	BOOST_AUTO_TEST_CASE(literal_prefix)
 	{
-		test_code_tokenizer("f(L'\0');", {}, {
+		test_code_tokenizer("f(L'\\0');", {}, {
 			test_code_token{syntax_token::identifier_unknown, std::string_view("f")},
 			test_code_token{syntax_token::nothing_special, std::string_view("(")},
 			test_code_token{syntax_token::literal_prefix, std::string_view("L")},
 			test_code_token{syntax_token::literal_char_begin, std::string_view("'")},
-			test_code_token{syntax_token::escape_sequence, std::string_view("\0")},
+			test_code_token{syntax_token::escape_sequence, std::string_view("\\0")},
 			test_code_token{syntax_token::literal_text_end, std::string_view("'")},
 			test_code_token{syntax_token::nothing_special, std::string_view(");")},
 			test_code_token{syntax_token::end_of_input, std::string_view()}
@@ -486,6 +513,114 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 			test_code_token{syntax_token::nothing_special, std::string_view(");")},
 			test_code_token{syntax_token::end_of_input, std::string_view()}
 		});
+	}
+
+	BOOST_AUTO_TEST_CASE(semantic_tokens)
+	{
+		std::string_view input =
+			"template <typename T>\n"
+			"bar foo<T>::f(int& n) const\n"
+			"{\n"
+			"\tauto k = 1;\n"
+			"\treturn h(T::v, g, k, m, n);\n"
+			"}\n";
+
+		semantic_token_info sti_t1{semantic_token_type::template_parameter, semantic_token_modifiers{}.declaration().scope_class()};
+		semantic_token_info sti_bar{semantic_token_type::class_, semantic_token_modifiers{}};
+		semantic_token_info sti_foo{semantic_token_type::class_, semantic_token_modifiers{}};
+		semantic_token_info sti_t2{semantic_token_type::template_parameter, semantic_token_modifiers{}.scope_class()};
+		semantic_token_info sti_f{semantic_token_type::method, semantic_token_modifiers{}.virtual_()};
+		semantic_token_info sti_n1{semantic_token_type::parameter, semantic_token_modifiers{}.declaration().scope_function()};
+		semantic_token_info sti_auto{semantic_token_type::type, semantic_token_modifiers{}.deduced()};
+		semantic_token_info sti_k1{semantic_token_type::variable, semantic_token_modifiers{}.declaration().scope_function()};
+		semantic_token_info sti_h{semantic_token_type::function, semantic_token_modifiers{}};
+		semantic_token_info sti_t3{semantic_token_type::template_parameter, semantic_token_modifiers{}.scope_class()};
+		semantic_token_info sti_v{semantic_token_type::unknown, semantic_token_modifiers{}.dependent_name()};
+		semantic_token_info sti_g{semantic_token_type::variable, semantic_token_modifiers{}.readonly().scope_global()};
+		semantic_token_info sti_k2{semantic_token_type::variable, semantic_token_modifiers{}.scope_function()};
+		semantic_token_info sti_m{semantic_token_type::variable, semantic_token_modifiers{}.scope_class()};
+		semantic_token_info sti_n2{semantic_token_type::parameter, semantic_token_modifiers{}.scope_function().out_parameter()};
+
+		test_code_tokenizer(input, {
+				semantic_token{{0, 19}, 1, sti_t1, {}},
+				semantic_token{{1, 0}, 3, sti_bar, {}},
+				semantic_token{{1, 4}, 3, sti_foo, {}},
+				semantic_token{{1, 8}, 1, sti_t2, {}},
+				semantic_token{{1, 12}, 1u, sti_f, {}},
+				semantic_token{{1, 19}, 1u, sti_n1, {}},
+				semantic_token{{3, 1}, 4u, sti_auto, {}},
+				semantic_token{{3, 6}, 1u, sti_k1, {}},
+				semantic_token{{4, 8}, 1u, sti_h, {}},
+				semantic_token{{4, 10}, 1u, sti_t3, {}},
+				semantic_token{{4, 13}, 1u, sti_v, {}},
+				semantic_token{{4, 16}, 1u, sti_g, {}},
+				semantic_token{{4, 19}, 1u, sti_k2, {}},
+				semantic_token{{4, 22}, 1u, sti_m, {}},
+				semantic_token{{4, 25}, 1u, sti_n2, {}},
+			}, {
+				test_code_token{syntax_token::keyword, std::string_view("template")},
+				test_code_token{syntax_token::whitespace, std::string_view(" ")},
+				test_code_token{syntax_token::nothing_special, std::string_view("<")},
+				test_code_token{syntax_token::keyword, std::string_view("typename")},
+				test_code_token{syntax_token::whitespace, std::string_view(" ")},
+				test_code_token{identifier_token{sti_t1, {}}, std::string_view("T")},
+				test_code_token{syntax_token::nothing_special, std::string_view(">")},
+				test_code_token{syntax_token::whitespace, std::string_view("\n")},
+				test_code_token{identifier_token{sti_bar, {}}, std::string_view("bar")},
+				test_code_token{syntax_token::whitespace, std::string_view(" ")},
+				test_code_token{identifier_token{sti_foo, {}}, std::string_view("foo")},
+				test_code_token{syntax_token::nothing_special, std::string_view("<")},
+				test_code_token{identifier_token{sti_t2, {}}, std::string_view("T")},
+				test_code_token{syntax_token::nothing_special, std::string_view(">::")},
+				test_code_token{identifier_token{sti_f, {}}, std::string_view("f")},
+				test_code_token{syntax_token::nothing_special, std::string_view("(")},
+				test_code_token{syntax_token::keyword, std::string_view("int")},
+				test_code_token{syntax_token::nothing_special, std::string_view("&")},
+				test_code_token{syntax_token::whitespace, std::string_view(" ")},
+				test_code_token{identifier_token{sti_n1, {}}, std::string_view("n")},
+				test_code_token{syntax_token::nothing_special, std::string_view(")")},
+				test_code_token{syntax_token::whitespace, std::string_view(" ")},
+				test_code_token{syntax_token::keyword, std::string_view("const")},
+				test_code_token{syntax_token::whitespace, std::string_view("\n")},
+				test_code_token{syntax_token::nothing_special, std::string_view("{")},
+				test_code_token{syntax_token::whitespace, std::string_view("\n")},
+				test_code_token{syntax_token::whitespace, std::string_view("\t")},
+				test_code_token{syntax_token::keyword, std::string_view("auto")},
+				test_code_token{syntax_token::whitespace, std::string_view(" ")},
+				test_code_token{identifier_token{sti_k1, {}}, std::string_view("k")},
+				test_code_token{syntax_token::whitespace, std::string_view(" ")},
+				test_code_token{syntax_token::nothing_special, std::string_view("=")},
+				test_code_token{syntax_token::whitespace, std::string_view(" ")},
+				test_code_token{syntax_token::literal_number, std::string_view("1")},
+				test_code_token{syntax_token::nothing_special, std::string_view(";")},
+				test_code_token{syntax_token::whitespace, std::string_view("\n")},
+				test_code_token{syntax_token::whitespace, std::string_view("\t")},
+				test_code_token{syntax_token::keyword, std::string_view("return")},
+				test_code_token{syntax_token::whitespace, std::string_view(" ")},
+				test_code_token{identifier_token{sti_h, {}}, std::string_view("h")},
+				test_code_token{syntax_token::nothing_special, std::string_view("(")},
+				test_code_token{identifier_token{sti_t3, {}}, std::string_view("T")},
+				test_code_token{syntax_token::nothing_special, std::string_view("::")},
+				test_code_token{identifier_token{sti_v, {}}, std::string_view("v")},
+				test_code_token{syntax_token::nothing_special, std::string_view(",")},
+				test_code_token{syntax_token::whitespace, std::string_view(" ")},
+				test_code_token{identifier_token{sti_g, {}}, std::string_view("g")},
+				test_code_token{syntax_token::nothing_special, std::string_view(",")},
+				test_code_token{syntax_token::whitespace, std::string_view(" ")},
+				test_code_token{identifier_token{sti_k2, {}}, std::string_view("k")},
+				test_code_token{syntax_token::nothing_special, std::string_view(",")},
+				test_code_token{syntax_token::whitespace, std::string_view(" ")},
+				test_code_token{identifier_token{sti_m, {}}, std::string_view("m")},
+				test_code_token{syntax_token::nothing_special, std::string_view(",")},
+				test_code_token{syntax_token::whitespace, std::string_view(" ")},
+				test_code_token{identifier_token{sti_n2, {}}, std::string_view("n")},
+				test_code_token{syntax_token::nothing_special, std::string_view(");")},
+				test_code_token{syntax_token::whitespace, std::string_view("\n")},
+				test_code_token{syntax_token::nothing_special, std::string_view("}")},
+				test_code_token{syntax_token::whitespace, std::string_view("\n")},
+				test_code_token{syntax_token::end_of_input, std::string_view()}
+			}
+		);
 	}
 
 BOOST_AUTO_TEST_SUITE_END()

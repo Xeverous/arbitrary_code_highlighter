@@ -98,6 +98,90 @@ inline std::optional<semantic_token_type> parse_semantic_token_type(std::string_
 ACH_RICH_ENUM_CLASS(semantic_token_scope_modifier, (none)(function)(class_)(file)(global));
 
 struct semantic_token_modifiers {
+	semantic_token_modifiers& declaration(bool state = true)
+	{
+		is_declaration = state;
+		return *this;
+	}
+
+	semantic_token_modifiers& deprecated(bool state = true)
+	{
+		is_deprecated = state;
+		return *this;
+	}
+
+	semantic_token_modifiers& deduced(bool state = true)
+	{
+		is_deduced = state;
+		return *this;
+	}
+
+	semantic_token_modifiers& readonly(bool state = true)
+	{
+		is_readonly = state;
+		return *this;
+	}
+
+	semantic_token_modifiers& static_(bool state = true)
+	{
+		is_static = state;
+		return *this;
+	}
+
+	semantic_token_modifiers& abstract(bool state = true)
+	{
+		is_abstract = state;
+		return *this;
+	}
+
+	semantic_token_modifiers& virtual_(bool state = true)
+	{
+		is_virtual = state;
+		return *this;
+	}
+
+	semantic_token_modifiers& dependent_name(bool state = true)
+	{
+		is_dependent_name = state;
+		return *this;
+	}
+
+	semantic_token_modifiers& from_std_lib(bool state = true)
+	{
+		is_from_std_lib = state;
+		return *this;
+	}
+
+	semantic_token_modifiers& out_parameter(bool state = true)
+	{
+		is_out_parameter = state;
+		return *this;
+	}
+
+	semantic_token_modifiers& scope_function()
+	{
+		scope = semantic_token_scope_modifier::function;
+		return *this;
+	}
+
+	semantic_token_modifiers& scope_class()
+	{
+		scope = semantic_token_scope_modifier::class_;
+		return *this;
+	}
+
+	semantic_token_modifiers& scope_file()
+	{
+		scope = semantic_token_scope_modifier::file;
+		return *this;
+	}
+
+	semantic_token_modifiers& scope_global()
+	{
+		scope = semantic_token_scope_modifier::global;
+		return *this;
+	}
+
 	bool is_declaration    = false; // "declaration"
 	bool is_deprecated     = false; // "deprecated"
 	bool is_deduced        = false; // "deduced"
@@ -248,6 +332,11 @@ constexpr bool operator!=(semantic_token_color_variance lhs, semantic_token_colo
 	return !(lhs == rhs);
 }
 
+inline std::ostream& operator<<(std::ostream& os, semantic_token_color_variance cv)
+{
+	return os << cv.color_variant << (cv.last_reference ? " last" : "");
+}
+
 struct semantic_token
 {
 	text::position pos = {};
@@ -267,5 +356,11 @@ struct semantic_token
 		return result;
 	}
 };
+
+inline std::ostream& operator<<(std::ostream& os, semantic_token token)
+{
+	return os << "[" << token.pos << ", length: " << token.length << "]\n"
+		<< token.info << "color variance: " << token.color_variance << "\n";
+}
 
 }

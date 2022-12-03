@@ -78,8 +78,9 @@ bool code_tokenizer::advance_semantic_tokens()
 				return false; // ...if not, the semantic token data is invalid
 		}
 		else {
-			// no more splice: stop the loop
+			// no more splice: accept the token and stop the loop
 			// no test of info here as 2 adjacent tokens may have the same info by accident
+			++it;
 			break;
 		}
 	}

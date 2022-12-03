@@ -53,7 +53,7 @@ inline std::ostream& operator<<(std::ostream& os, highlighter_error error)
 	{
 		os << "\n";
 		for (semantic_token token : error.last_semantic_tokens)
-			os << "\t[" << token.pos << ", length" << token.length << "]\n";
+			os << "\t[" << token.pos << ", length: " << token.length << "]\n";
 	}
 
 	return os;
