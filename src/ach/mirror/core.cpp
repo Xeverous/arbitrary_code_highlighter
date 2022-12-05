@@ -9,6 +9,8 @@
 #include <ach/utility/algorithm.hpp>
 
 #include <cassert>
+#include <algorithm>
+#include <cstddef>
 #include <optional>
 #include <variant>
 #include <utility>
@@ -145,6 +147,18 @@ std::optional<web::css_class> find_invalid_css_class(web::quote_span_element el,
 	return std::nullopt;
 }
 
+std::size_t expected_output_size(std::size_t code_size, std::size_t color_size) noexcept
+{
+	// Stats from 05.12.2022 (website commit bd1b91858ffcc36636a4828b85aca1d6e1f7ff6a + some diff)
+	// Main highlighter calls: 361, sizes (code/color/output): 146328/135721/681996.
+	// Inline calls (including premade inline codes): 1157, sizes: 11720/15195/70142.
+	// In both cases, the output is roughly 5x the size of code/color input.
+	// Inline calls have much larger color size on average because they tend to be more detailed.
+	// Eventually contents of both are embedded in the output (code between spans and color in spans)
+	// so the larger one is taken (reserve for worse case) and multiplied.
+	return std::max(code_size, color_size) * 5u;
+}
+
 }
 
 std::variant<std::string, highlighter_error> run_highlighter(
@@ -155,7 +169,7 @@ std::variant<std::string, highlighter_error> run_highlighter(
 	const bool wrap_in_table = !options.generation.table_wrap_css_class.empty();
 	const auto num_lines = text::count_lines(code);
 	web::html_builder builder;
-	// TODO use builder.reserve()
+	builder.reserve(expected_output_size(code.size(), color.size()));
 	if (wrap_in_table) {
 		builder.open_table(num_lines, options.generation.table_wrap_css_class);
 	}
