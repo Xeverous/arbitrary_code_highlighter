@@ -51,7 +51,10 @@ public:
 	{
 		return parse_exactly(delimeter);
 	}
-	text::fragment parse_symbols(); // TODO vague name
+
+	// symbols that are valid C++ code tokens and do not affect tokenizer's state
+	// (e.g. '{', '}', ';' and many symbol operators but not '"')
+	text::fragment parse_symbols();
 
 	text::fragment parse_comment_tag_todo();
 	text::fragment parse_comment_tag_doxygen();
