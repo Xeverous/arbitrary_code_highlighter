@@ -185,7 +185,7 @@ struct semantic_token_modifiers {
 	bool is_declaration    = false; // "declaration"
 	bool is_deprecated     = false; // "deprecated"
 	bool is_deduced        = false; // "deduced"
-	bool is_readonly       = false; // "readonly" TODO this might not be 1:1 with const - verify
+	bool is_readonly       = false; // "readonly"
 	bool is_static         = false; // "static"
 	bool is_abstract       = false; // "abstract"
 	bool is_virtual        = false; // "virtual"
