@@ -259,8 +259,11 @@ std::variant<std::string, highlighter_error> run_highlighter(
 
 	const bool wrap_in_table = !options.table_wrap_css_class.empty();
 	const auto num_lines = text::count_lines(code);
+
 	web::html_builder builder;
-	// TODO use builder.reserve()
+	// based on measuring mirror highlight which has very similar output size
+	builder.reserve(code.size() * 5u);
+
 	if (wrap_in_table)
 		builder.open_table(num_lines, options.table_wrap_css_class);
 
