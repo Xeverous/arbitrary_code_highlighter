@@ -350,42 +350,42 @@ inline auto identifier =
 
 inline auto text_literal_prefix = literal_char{'L'} | literal_string{"u8"} | literal_char{'u'} | literal_char{'U'};
 
-inline auto escape_simple = parsers::specific_char{[](char c) {
+inline auto escape_simple = specific_char{[](char c) {
 	return c == '\'' || c == '"' || c == '?' || c == '\\' || c == 'a'
 		|| c == 'b' || c == 'f' || c == 'n' || c == 'r' || c == 't' || c == 'v';
 }};
 inline auto escape_numeric =
 	// \nnn
-	(parsers::digit_octal >> parsers::digit_octal >> parsers::digit_octal)
+	(digit_octal >> digit_octal >> digit_octal)
 	// \nn
-	| (parsers::digit_octal >> parsers::digit_octal)
+	| (digit_octal >> digit_octal)
 	// \n
-	| parsers::digit_octal
+	| digit_octal
 	// \o{n...} (arbitrary number of octal)
-	| (parsers::literal_char{'o'} >> parsers::literal_char{'{'} >> +parsers::digit_octal >> parsers::literal_char{'}'})
+	| (literal_char{'o'} >> literal_char{'{'} >> +digit_octal >> literal_char{'}'})
 	// \xn... (arbitrary number of hex)
-	| (parsers::literal_char{'x'} >> +parsers::digit_hex)
+	| (literal_char{'x'} >> +digit_hex)
 	// \x{n...} (arbitrary number of hex)
-	| (parsers::literal_char{'x'} >> parsers::literal_char{'{'} >> +parsers::digit_hex >> parsers::literal_char{'}'})
+	| (literal_char{'x'} >> literal_char{'{'} >> +digit_hex >> literal_char{'}'})
 	// \unnnn (4 hex digits)
-	| (parsers::literal_char{'u'} >> parsers::digit_hex >> parsers::digit_hex >> parsers::digit_hex >> parsers::digit_hex)
+	| (literal_char{'u'} >> digit_hex >> digit_hex >> digit_hex >> digit_hex)
 	// \u{n...} (arbitrary number of hex digits)
-	| (parsers::literal_char{'u'} >> parsers::literal_char{'{'} >> +parsers::digit_hex >> parsers::literal_char{'}'})
+	| (literal_char{'u'} >> literal_char{'{'} >> +digit_hex >> literal_char{'}'})
 	// \Unnnn (8 hex digits)
-	| (parsers::literal_char{'U'}
-		>> parsers::digit_hex >> parsers::digit_hex >> parsers::digit_hex >> parsers::digit_hex
-		>> parsers::digit_hex >> parsers::digit_hex >> parsers::digit_hex >> parsers::digit_hex
+	| (literal_char{'U'}
+		>> digit_hex >> digit_hex >> digit_hex >> digit_hex
+		>> digit_hex >> digit_hex >> digit_hex >> digit_hex
 	)
 	// \N{name} where name consists of A-Z, 0-9, '-', ' '
-	| (parsers::literal_char{'N'} >> parsers::literal_char{'{'}
-		>> +parsers::specific_char{[](char c) {
+	| (literal_char{'N'} >> literal_char{'{'}
+		>> +specific_char{[](char c) {
 			return ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9') || c == '-' || c == ' ';
 		}}
-		>> parsers::literal_char{'}'}
+		>> literal_char{'}'}
 	)
 ;
 inline auto escape_implementation_defined =
-	parsers::specific_char{function_to_function_object(text::is_from_basic_character_set)};
+	specific_char{function_to_function_object(text::is_from_basic_character_set)};
 
 } // namespace parsers
 
