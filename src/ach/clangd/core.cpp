@@ -42,7 +42,7 @@ constexpr auto literal_string_raw_delimeter = "lit-str-raw-delim";
 constexpr auto literal_prefix = "lit-pre";
 constexpr auto literal_suffix = "lit-suf";
 constexpr auto escape_sequence = "esc-seq";
-constexpr auto format_sequence = "fmt-seq"; // TODO implement and use
+constexpr auto format_sequence = "fmt-seq";
 
 constexpr auto unknown = "unknown";
 
@@ -156,6 +156,8 @@ builder_action token_to_action(syntax_token token)
 			return open_paste_close{css::literal_string_raw_delimeter};
 		case syntax_token::escape_sequence:
 			return open_paste_close{css::escape_sequence};
+		case syntax_token::format_sequence:
+			return open_paste_close{css::format_sequence};
 		case syntax_token::whitespace:
 			return paste_only{};
 		case syntax_token::nothing_special:
@@ -278,7 +280,9 @@ std::variant<std::string, highlighter_error> run_highlighter(
 		const context_state_t current_context_state = tokenizer.current_context_state();
 		const preprocessor_state_t current_preprocessor_state = tokenizer.current_preprocessor_state();
 
-		std::variant<code_token, highlighter_error> token_or_error = tokenizer.next_code_token(keywords);
+		std::variant<code_token, highlighter_error> token_or_error =
+			tokenizer.next_code_token(keywords, options.formatting_printf);
+
 		if (std::holds_alternative<highlighter_error>(token_or_error))
 			return std::get<highlighter_error>(token_or_error);
 

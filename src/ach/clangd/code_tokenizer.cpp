@@ -95,7 +95,8 @@ void code_tokenizer::on_parsed_newline()
 	m_preprocessor_macro_params.clear();
 }
 
-std::variant<code_token, highlighter_error> code_tokenizer::next_code_token(utility::range<const std::string*> keywords)
+std::variant<code_token, highlighter_error>
+code_tokenizer::next_code_token(utility::range<const std::string*> keywords, bool formatting_printf)
 {
 	if (m_disabled_code_end_pos == current_position()) {
 		m_disabled_code_end_pos = std::nullopt;
@@ -137,9 +138,9 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token(util
 			m_context_state = context_state_t::none;
 			return code_token{syntax_token::comment_end, empty_match()};
 		case context_state_t::literal_character:
-			return next_code_token_context_quoted_literal('\'', false);
+			return next_code_token_context_quoted_literal('\'', false, formatting_printf);
 		case context_state_t::literal_string:
-			return next_code_token_context_quoted_literal('"', true);
+			return next_code_token_context_quoted_literal('"', true, formatting_printf);
 		case context_state_t::literal_string_raw_quote_open:
 			if (text::fragment quote = m_parser.parse_exactly('"'); !quote.empty()) {
 				m_context_state = context_state_t::literal_string_raw_delimeter_open;
@@ -412,14 +413,18 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_cont
 	return make_error(error_reason::internal_error_unhandled_comment);
 }
 
-std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_context_quoted_literal(char delimeter, bool allow_suffix)
+std::variant<code_token, highlighter_error>
+code_tokenizer::next_code_token_context_quoted_literal(char delimeter, bool allow_suffix, bool formatting_printf)
 {
 	if (text::fragment escape = m_parser.parse_escape_sequence(); !escape.empty())
 		return code_token{syntax_token::escape_sequence, escape};
 
-	// TODO add formatting strings here (e.g. %s, %d)
+	if (formatting_printf) {
+		if (text::fragment formatting = m_parser.parse_format_sequence_printf(); !formatting.empty())
+			return code_token{syntax_token::format_sequence, formatting};
+	}
 
-	if (text::fragment frag = m_parser.parse_text_literal_body(delimeter); !frag.empty())
+	if (text::fragment frag = m_parser.parse_text_literal_body(delimeter, formatting_printf); !frag.empty())
 		return code_token{syntax_token::nothing_special, frag};
 
 	if (text::fragment delim = m_parser.parse_exactly(delimeter); !delim.empty()) {

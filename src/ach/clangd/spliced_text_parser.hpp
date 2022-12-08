@@ -72,7 +72,17 @@ public:
 	}
 
 	text::fragment parse_escape_sequence();
-	text::fragment parse_text_literal_body(char delimeter);
+	text::fragment parse_format_sequence_printf();
+
+	text::fragment parse_text_literal_body_formatting_none(char delimeter);
+	text::fragment parse_text_literal_body_formatting_printf(char delimeter);
+	text::fragment parse_text_literal_body(char delimeter, bool formatting_printf)
+	{
+		if (formatting_printf)
+			return parse_text_literal_body_formatting_printf(delimeter);
+		else
+			return parse_text_literal_body_formatting_none(delimeter);
+	}
 
 private:
 	template <typename Parser>

@@ -60,6 +60,7 @@ ACH_RICH_ENUM_CLASS(syntax_token,
 	(literal_string_raw_delimeter)
 	(literal_string_raw_paren)
 	(escape_sequence)
+	(format_sequence)
 
 	(whitespace)
 	// used when inside some context but no specific highlight is desired

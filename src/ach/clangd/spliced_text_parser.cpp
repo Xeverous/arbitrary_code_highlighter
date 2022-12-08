@@ -387,6 +387,33 @@ inline auto escape_numeric =
 inline auto escape_implementation_defined =
 	specific_char{function_to_function_object(text::is_from_basic_character_set)};
 
+inline auto formatting_printf =
+	literal_char{'%'}
+	// flags
+	>> -(
+		literal_char{'-'}
+		| literal_char{'+'}
+		| literal_char{' '}
+		| literal_char{'#'}
+		| literal_char{'0'}
+	)
+	// width
+	>> -(literal_char{'*'} | +digit_decimal)
+	// precision
+	>> -(literal_char{'.'} >> -(literal_char{'*'} | +digit_decimal))
+	// length
+	>> -(
+		literal_string{"hh"} | literal_char{'h'} | literal_string{"ll"} | literal_char{'l'}
+		| literal_char{'j'} | literal_char{'z'} | literal_char{'t'} | literal_char{'L'}
+	)
+	// convertion
+	>> (
+		literal_char{'%'} | literal_char{'c'} | literal_char{'s'} | literal_char{'d'} | literal_char{'i'}
+		| literal_char{'o'} | literal_char{'x'} | literal_char{'X'} | literal_char{'u'} | literal_char{'f'}
+		| literal_char{'F'} | literal_char{'e'} | literal_char{'E'} | literal_char{'a'} | literal_char{'A'}
+		| literal_char{'g'} | literal_char{'G'} | literal_char{'n'} | literal_char{'p'}
+	);
+
 } // namespace parsers
 
 } // namespace
@@ -551,9 +578,19 @@ text::fragment spliced_text_parser::parse_escape_sequence()
 	));
 }
 
-text::fragment spliced_text_parser::parse_text_literal_body(char delimeter)
+text::fragment spliced_text_parser::parse_format_sequence_printf()
+{
+	return parse(+parsers::formatting_printf);
+}
+
+text::fragment spliced_text_parser::parse_text_literal_body_formatting_none(char delimeter)
 {
 	return parse(+(parsers::any_char{} - parsers::literal_char{'\\'} - parsers::literal_char{delimeter}));
+}
+
+text::fragment spliced_text_parser::parse_text_literal_body_formatting_printf(char delimeter)
+{
+	return parse(+(parsers::any_char{} - parsers::literal_char{'\\'} - parsers::formatting_printf - parsers::literal_char{delimeter}));
 }
 
 text::fragment spliced_text_parser::return_parse_result(bool is_success, spliced_text_iterator updated_iterator)

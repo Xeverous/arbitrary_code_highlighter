@@ -1,3 +1,4 @@
+#include <ach/clangd/core.hpp>
 #include <ach/clangd/code_token.hpp>
 #include <ach/clangd/code_tokenizer.hpp>
 #include <ach/clangd/highlighter_error.hpp>
@@ -156,10 +157,11 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 			os << *it << "\n";
 	}
 
-	boost::test_tools::assertion_result test_code_tokenizer_impl(
+	[[nodiscard]] boost::test_tools::assertion_result test_code_tokenizer_impl(
 		std::string_view input,
 		const std::vector<semantic_token>& sem_tokens,
-		const std::vector<test_code_token>& test_tokens)
+		const std::vector<test_code_token>& test_tokens,
+		highlighter_options options)
 	{
 		auto tokenizer = make_code_tokenizer(input, {sem_tokens.data(), sem_tokens.data() + sem_tokens.size()});
 		text::position current_position = {};
@@ -173,7 +175,7 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 			}
 
 			std::variant<code_token, highlighter_error> token_or_error = tokenizer.next_code_token(
-				{keywords.begin(), keywords.begin() + keywords.size()});
+				{keywords.begin(), keywords.begin() + keywords.size()}, options.formatting_printf);
 
 			if (std::holds_alternative<highlighter_error>(token_or_error)) {
 				boost::test_tools::assertion_result result = false;
@@ -218,9 +220,10 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 	void test_code_tokenizer(
 		std::string_view input,
 		const std::vector<semantic_token>& sem_tokens,
-		const std::vector<test_code_token>& test_tokens)
+		const std::vector<test_code_token>& test_tokens,
+		highlighter_options options = {})
 	{
-		BOOST_TEST(test_code_tokenizer_impl(input, sem_tokens, test_tokens));
+		BOOST_TEST(test_code_tokenizer_impl(input, sem_tokens, test_tokens, options));
 	}
 
 	BOOST_AUTO_TEST_CASE(empty_input)
@@ -479,6 +482,33 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 			test_code_token{syntax_token::nothing_special, std::string_view(";")},
 			test_code_token{syntax_token::end_of_input, std::string_view()}
 		});
+	}
+
+	BOOST_AUTO_TEST_CASE(escape_and_format_sequences)
+	{
+		test_code_tokenizer(R"("abc%s%% \\%+.?";)", {}, {
+			test_code_token{syntax_token::literal_string_begin, std::string_view("\"")},
+			test_code_token{syntax_token::nothing_special, std::string_view("abc%s%% ")},
+			test_code_token{syntax_token::escape_sequence, std::string_view("\\\\")},
+			test_code_token{syntax_token::nothing_special, std::string_view("%+.?")},
+			test_code_token{syntax_token::literal_text_end, std::string_view("\"")},
+			test_code_token{syntax_token::nothing_special, std::string_view(";")},
+			test_code_token{syntax_token::end_of_input, std::string_view()}
+		});
+
+		highlighter_options options;
+		options.formatting_printf = true;
+		test_code_tokenizer(R"("abc%s%% \\%+.?";)", {}, {
+			test_code_token{syntax_token::literal_string_begin, std::string_view("\"")},
+			test_code_token{syntax_token::nothing_special, std::string_view("abc")},
+			test_code_token{syntax_token::format_sequence, std::string_view("%s%%")},
+			test_code_token{syntax_token::nothing_special, std::string_view(" ")},
+			test_code_token{syntax_token::escape_sequence, std::string_view("\\\\")},
+			test_code_token{syntax_token::nothing_special, std::string_view("%+.?")},
+			test_code_token{syntax_token::literal_text_end, std::string_view("\"")},
+			test_code_token{syntax_token::nothing_special, std::string_view(";")},
+			test_code_token{syntax_token::end_of_input, std::string_view()}
+		}, options);
 	}
 
 	BOOST_AUTO_TEST_CASE(literal_prefix)
