@@ -23,17 +23,17 @@ color_token color_tokenizer::next_token(color_options options)
 		const text::located_span extracted_text = extractor.extract_alphas_underscores();
 		const std::string_view identifier = extracted_text.str();
 
-		if (identifier == options.num_class) {
-			return color_token{number{identifier}, extracted_text};
+		if (identifier == options.num_keyword) {
+			return color_token{number{options.num_class}, extracted_text};
 		}
 
-		if (identifier == options.str_class) {
+		if (identifier == options.str_keyword) {
 			return color_token{
 				quoted_span{{options.str_class}, {options.str_esc_class}, '"', options.escape_char},
 				extracted_text};
 		}
 
-		if (identifier == options.chr_class) {
+		if (identifier == options.chr_keyword) {
 			return color_token{
 				quoted_span{{options.chr_class}, {options.chr_esc_class}, '\'', options.escape_char},
 				extracted_text};

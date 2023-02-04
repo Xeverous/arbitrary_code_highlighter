@@ -29,6 +29,7 @@ py::str run_mirror_highlighter(
 	// required arguments
 	std::string_view code, std::string_view color,
 	// optional, keyword arguments
+	std::string_view num_keyword, std::string_view str_keyword, std::string_view chr_keyword,
 	std::string_view num_class,
 	std::string_view str_class, std::string_view str_esc_class,
 	std::string_view chr_class, std::string_view chr_esc_class,
@@ -55,6 +56,7 @@ py::str run_mirror_highlighter(
 				valid_css_classes
 			},
 			ach::mirror::color_options{
+				num_keyword, str_keyword, chr_keyword,
 				num_class,
 				str_class, str_esc_class,
 				chr_class, chr_esc_class,
@@ -214,6 +216,9 @@ PYBIND11_MODULE(pyach, m) {
 	m.def("run_mirror_highlighter", &run_mirror_highlighter,
 		py::arg("code").none(false),
 		py::arg("color").none(false),
+		py::arg("num_keyword")      = ach::mirror::color_options::default_num_keyword,
+		py::arg("str_keyword")      = ach::mirror::color_options::default_str_keyword,
+		py::arg("chr_keyword")      = ach::mirror::color_options::default_chr_keyword,
 		py::arg("num_class")        = ach::mirror::color_options::default_num_class,
 		py::arg("str_class")        = ach::mirror::color_options::default_str_class,
 		py::arg("str_esc_class")    = ach::mirror::color_options::default_str_esc_class,

@@ -83,13 +83,13 @@ func(arg);
 <span class="func">foo</span>(<span class="arg">bar</span>);
 ```
 
-3 color identifiers have special meaning:
+3 configurable color identifiers have special meaning (in other words, color keywords):
 
 - `num` - matches against a sequence of digits
-- `chr` - matches against a literal embedded in `'` quotes
-- `str` - matches against a literal embedded in `"` quotes
+- `chr` - matches against a literal, formed by `'` quotes
+- `str` - matches against a literal, formed by `"` quotes
 
-The literals may contain simples form of escapes (`\` followed by any single character) in which case these receive `chr_esc` and `str_esc` span classes:
+The literals may contain the simplest form of literal escapes: `\` followed by any single character. Escaped content automatically receives separate CSS span classes (there is no keyword for escaped content):
 
 ```
 "string\nwith\bescapes"
@@ -97,7 +97,7 @@ str
 <span class="str">"string<span class="str_esc">\n</span>with<span class="str_esc">\b</span>escapes"</span>
 ```
 
-Because CSS class names frequently use `-` and it is not allowed in color identifier names, one of generation option allows to convert `_` to `-`.
+Due to very high variance in numeric syntax across languages, the `num` keyword supports only ASCII digits. Anything more complex requires to use length-based matching.
 
 If the color identifier is preceeded by a number, it changes the matching behavior from color-identifier-to-code-identifier to color-identifier-to-exactly-this-many-characters:
 
@@ -123,7 +123,7 @@ func(); 0com
 <span class="func">f</span>(); <span class="com">// comment</span>
 ```
 
-If specifying length is not desired and there is no whitespace between tokens the ` character can be used to separate color token names:
+If specifying length is not desired and there is no whitespace between tokens, a special, configurable character (` by default) can be used to separate color token names:
 
 ```
 **kwargs
@@ -139,7 +139,11 @@ onetwothree
 <span class="first">one</span>two<span class="third">three</span>
 ```
 
-See `src/test/mirror_tests.cpp` for more examples.
+Additional remarks:
+
+- More examples can be found in `src/test/mirror_tests.cpp`.
+- Because CSS class names frequently use `-` and this character is not allowed in color identifier names, one of generation option allows to convert `_` to `-`. This means it's possible to use `underscored_names` within color file and receive `dashed-names` in the span class names in the output.
+- There is no special handling for unicode. Everything is compared byte-to-byte. Both code and color files may be unicode, but then one must be aware that because identifiers are matched only by ASCII characters, non-ASCII unicode bytes will not form identifiers (in both types of files) and fall into byte-to-byte matching intended for symbols. Additionally, the color file will have to use a lot of numeric specifiers to correctly match certain number of bytes from the code file.
 
 ## Documentation - clangd
 

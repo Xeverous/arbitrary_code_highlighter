@@ -46,13 +46,26 @@ void find_and_print_mismatched_line(
 }
 
 [[nodiscard]]
+mirror::color_options get_test_color_options()
+{
+	mirror::color_options options;
+	options.num_class = "num";
+	options.str_class = "str";
+	options.str_esc_class = "str_esc";
+	options.chr_class = "chr";
+	options.chr_esc_class = "chr_esc";
+	return options;
+}
+
+[[nodiscard]]
 boost::test_tools::assertion_result run_and_compare(
 	std::string_view input_code,
 	std::string_view input_color,
 	std::string_view expected_output,
-	const mirror::highlighter_options& options = {})
+	mirror::generation_options gen_options = {})
 {
-	std::variant<std::string, mirror::highlighter_error> output = run_highlighter(input_code, input_color, options);
+	std::variant<std::string, mirror::highlighter_error> output =
+		run_highlighter(input_code, input_color, mirror::highlighter_options{gen_options, get_test_color_options()});
 
 	if (auto ptr = std::get_if<mirror::highlighter_error>(&output); ptr != nullptr) {
 		boost::test_tools::assertion_result test_result(false);
@@ -108,9 +121,10 @@ boost::test_tools::assertion_result run_and_expect_error(
 	std::string_view input_code,
 	std::string_view input_color,
 	mirror::highlighter_error expected_error,
-	const mirror::highlighter_options& options = {})
+	mirror::generation_options gen_options = {})
 {
-	std::variant<std::string, mirror::highlighter_error> output = run_highlighter(input_code, input_color, options);
+	std::variant<std::string, mirror::highlighter_error> output =
+		run_highlighter(input_code, input_color, mirror::highlighter_options{gen_options, get_test_color_options()});
 
 	boost::test_tools::assertion_result test_result(true);
 
@@ -328,7 +342,7 @@ BOOST_AUTO_TEST_SUITE(highlighter_positive)
 			"one1 two2 three3",
 			"key_word k_e_y_w_o_r_d _keyword_",
 			"<span class=\"key-word\">one1</span> <span class=\"k-e-y-w-o-r-d\">two2</span> <span class=\"-keyword-\">three3</span>",
-			mirror::highlighter_options{mirror::generation_options{true}, {}}));
+			mirror::generation_options{true}));
 	}
 
 BOOST_AUTO_TEST_SUITE_END()
@@ -337,8 +351,8 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 
 	BOOST_AUTO_TEST_CASE(invalid_css_class)
 	{
-		mirror::highlighter_options options;
-		options.generation.valid_css_classes = "keyword;param";
+		mirror::generation_options gen_options;
+		gen_options.valid_css_classes = "keyword;param";
 		BOOST_TEST(run_and_expect_error(
 			"one+two+three",
 			"keyword+param+three",
@@ -347,7 +361,7 @@ BOOST_AUTO_TEST_SUITE(highlighter_negative)
 				text::located_span("one+two+three", 0, 8, 0),
 				mirror::errors::invalid_css_class
 			},
-			options));
+			gen_options));
 	}
 
 	BOOST_AUTO_TEST_CASE(exhausted_color)
