@@ -163,7 +163,7 @@ py::str run_clangd_highlighter(
 	const py::list& list_keywords,
 	std::string_view table_wrap_css_class,
 	int color_variants,
-	bool formatting_printf)
+	bool highlight_printf_formatting)
 {
 	const std::vector<ach::clangd::semantic_token_type> semantic_token_types =
 		parse_semantic_token_types(list_semantic_token_types);
@@ -196,7 +196,7 @@ py::str run_clangd_highlighter(
 		ach::utility::range<const ach::clangd::semantic_token*>{
 			semantic_tokens.data(), semantic_tokens.data() + semantic_tokens.size()},
 		ach::utility::range<const std::string*>{keywords.data(), keywords.data() + keywords.size()},
-		ach::clangd::highlighter_options{table_wrap_css_class, color_variants, formatting_printf});
+		ach::clangd::highlighter_options{table_wrap_css_class, color_variants, highlight_printf_formatting});
 
 	return std::visit(ach::utility::visitor{
 		[](const std::string& output) {
@@ -238,7 +238,7 @@ PYBIND11_MODULE(pyach, m) {
 		py::arg("keywords").none(false),
 		py::arg("table_wrap_css_class") = "",
 		py::arg("color_variants") = ach::clangd::highlighter_options{}.color_variants,
-		py::arg("formatting_printf") = ach::clangd::highlighter_options{}.formatting_printf);
+		py::arg("highlight_printf_formatting") = ach::clangd::highlighter_options{}.highlight_printf_formatting);
 
 	m.def("version", []() {
 		namespace av = ach::utility::version;

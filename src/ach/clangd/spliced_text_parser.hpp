@@ -76,9 +76,9 @@ public:
 
 	text::fragment parse_text_literal_body_formatting_none(char delimeter);
 	text::fragment parse_text_literal_body_formatting_printf(char delimeter);
-	text::fragment parse_text_literal_body(char delimeter, bool formatting_printf)
+	text::fragment parse_text_literal_body(char delimeter, bool highlight_printf_formatting)
 	{
-		if (formatting_printf)
+		if (highlight_printf_formatting)
 			return parse_text_literal_body_formatting_printf(delimeter);
 		else
 			return parse_text_literal_body_formatting_none(delimeter);

@@ -387,7 +387,7 @@ inline auto escape_numeric =
 inline auto escape_implementation_defined =
 	specific_char{function_to_function_object(text::is_from_basic_character_set)};
 
-inline auto formatting_printf =
+inline auto printf_formatting =
 	literal_char{'%'}
 	// flags
 	>> -(
@@ -580,7 +580,7 @@ text::fragment spliced_text_parser::parse_escape_sequence()
 
 text::fragment spliced_text_parser::parse_format_sequence_printf()
 {
-	return parse(+parsers::formatting_printf);
+	return parse(+parsers::printf_formatting);
 }
 
 text::fragment spliced_text_parser::parse_text_literal_body_formatting_none(char delimeter)
@@ -590,7 +590,7 @@ text::fragment spliced_text_parser::parse_text_literal_body_formatting_none(char
 
 text::fragment spliced_text_parser::parse_text_literal_body_formatting_printf(char delimeter)
 {
-	return parse(+(parsers::any_char{} - parsers::literal_char{'\\'} - parsers::formatting_printf - parsers::literal_char{delimeter}));
+	return parse(+(parsers::any_char{} - parsers::literal_char{'\\'} - parsers::printf_formatting - parsers::literal_char{delimeter}));
 }
 
 text::fragment spliced_text_parser::return_parse_result(bool is_success, spliced_text_iterator updated_iterator)

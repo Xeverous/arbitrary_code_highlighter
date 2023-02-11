@@ -175,7 +175,7 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 			}
 
 			std::variant<code_token, highlighter_error> token_or_error = tokenizer.next_code_token(
-				{keywords.begin(), keywords.begin() + keywords.size()}, options.formatting_printf);
+				{keywords.begin(), keywords.begin() + keywords.size()}, options.highlight_printf_formatting);
 
 			if (std::holds_alternative<highlighter_error>(token_or_error)) {
 				boost::test_tools::assertion_result result = false;
@@ -497,7 +497,7 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 		});
 
 		highlighter_options options;
-		options.formatting_printf = true;
+		options.highlight_printf_formatting = true;
 		test_code_tokenizer(R"("abc%s%% \\%+.?";)", {}, {
 			test_code_token{syntax_token::literal_string_begin, std::string_view("\"")},
 			test_code_token{syntax_token::nothing_special, std::string_view("abc")},

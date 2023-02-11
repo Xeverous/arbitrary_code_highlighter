@@ -257,18 +257,15 @@ std::variant<std::string, highlighter_error> run_highlighter(
 		};
 	}
 
-	code_tokenizer& tokenizer = *maybe_tokenizer;
-
-	const bool wrap_in_table = !options.table_wrap_css_class.empty();
-	const auto num_lines = text::count_lines(code);
-
 	web::html_builder builder;
 	// based on measuring mirror highlight which has very similar output size
 	builder.reserve(code.size() * 5u);
 
+	const bool wrap_in_table = !options.table_wrap_css_class.empty();
 	if (wrap_in_table)
-		builder.open_table(num_lines, options.table_wrap_css_class);
+		builder.open_table(text::count_lines(code), options.table_wrap_css_class);
 
+	code_tokenizer& tokenizer = *maybe_tokenizer;
 	bool done = false;
 	while (!done) {
 		// Save current progress before calling next_token.
@@ -281,7 +278,7 @@ std::variant<std::string, highlighter_error> run_highlighter(
 		const preprocessor_state_t current_preprocessor_state = tokenizer.current_preprocessor_state();
 
 		std::variant<code_token, highlighter_error> token_or_error =
-			tokenizer.next_code_token(keywords, options.formatting_printf);
+			tokenizer.next_code_token(keywords, options.highlight_printf_formatting);
 
 		if (std::holds_alternative<highlighter_error>(token_or_error))
 			return std::get<highlighter_error>(token_or_error);

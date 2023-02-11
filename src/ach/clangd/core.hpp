@@ -14,7 +14,7 @@ struct highlighter_options
 {
 	std::string_view table_wrap_css_class = {};
 	int color_variants = 6;
-	bool formatting_printf = false;
+	bool highlight_printf_formatting = false;
 };
 
 std::variant<std::string, highlighter_error> run_highlighter(

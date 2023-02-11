@@ -61,7 +61,7 @@ public:
 	}
 
 	[[nodiscard]] std::variant<code_token, highlighter_error>
-	next_code_token(utility::range<const std::string*> keywords, bool formatting_printf);
+	next_code_token(utility::range<const std::string*> keywords, bool highlight_printf_formatting);
 
 private:
 	text::fragment empty_match() const noexcept
@@ -88,7 +88,7 @@ private:
 	next_code_token_context_comment(bool is_multiline, bool is_documentation);
 
 	[[nodiscard]] std::variant<code_token, highlighter_error>
-	next_code_token_context_quoted_literal(char delimeter, bool allow_suffix, bool formatting_printf);
+	next_code_token_context_quoted_literal(char delimeter, bool allow_suffix, bool highlight_printf_formatting);
 
 	[[nodiscard]] std::variant<code_token, highlighter_error>
 	next_code_token_basic(utility::range<const std::string*> keywords, bool inside_macro_body);
