@@ -182,12 +182,12 @@ std::optional<std::string_view> semantic_token_info_to_css_class(semantic_token_
 		return css_class;
 	};
 
+	if (info.modifers.is_out_parameter)
+		return css::out_parameter;
+
 	switch (info.type) {
 		case semantic_token_type::parameter:
-			if (info.modifers.is_out_parameter)
-				return css::out_parameter;
-			else
-				return css::parameter;
+			return css::parameter;
 		case semantic_token_type::variable:
 			return handle_variable(css::variable_local);
 		case semantic_token_type::property:
