@@ -32,6 +32,11 @@ if(ACH_ENABLE_LTO)
 	set_target_properties(ach_core PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()
 
+if(ACH_ENABLE_SANITIZERS)
+	target_compile_options(ach_core PUBLIC -fsanitize=address -fsanitize=undefined)
+	target_link_options(ach_core PUBLIC -fsanitize=address -fsanitize=undefined)
+endif()
+
 target_link_libraries(ach_core PUBLIC enum.hpp)
 
 ##############################################################################

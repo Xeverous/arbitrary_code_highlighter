@@ -3,9 +3,11 @@
 #include <ach/text/types.hpp>
 #include <ach/utility/enum.hpp>
 
+#include <iomanip>
 #include <string_view>
 #include <optional>
 #include <ostream>
+#include <vector>
 
 namespace ach::clangd {
 
@@ -14,7 +16,7 @@ namespace ach::clangd {
  * LSP uses bitflags to represent modifiers; modifers themselves are defined by the server.
  * Here a more constrained format is used for better representation of mutually exclusive flags.
  *
- * Definitions based on clangd-15.0.2 LSP "initialize" call, reordered for clarity.
+ * Definitions based on clangd-20.1.8 LSP "initialize" call, reordered for clarity.
  * Comments mention flag names that differ from names in clangd output.
  */
 
@@ -44,11 +46,18 @@ ACH_RICH_ENUM_CLASS(semantic_token_type,
 	(namespace_)
 
 	// the LSP defines "comment" semantic token type but
-	// clangd uses it to mark preprocessor-disabled code) not comments
+	// clangd uses it to mark preprocessor-disabled code, not comments
 	(disabled_code)
 
 	// preprocessor
 	(macro)
+
+	(modifier) // override and final when used as intended
+
+	(operator_)
+	(bracket) // non-operator and non-preprocessor use of < > (e.g. templates)
+
+	(label)
 
 	(unknown)
 );
@@ -87,6 +96,14 @@ inline std::optional<semantic_token_type> parse_semantic_token_type(std::string_
 		return stt::concept_;
 	else if (name == "macro")
 		return stt::macro;
+	else if (name == "modifier")
+		return stt::modifier;
+	else if (name == "operator")
+		return stt::operator_;
+	else if (name == "bracket")
+		return stt::bracket;
+	else if (name == "label")
+		return stt::label;
 	else if (name == "comment")
 		return stt::disabled_code;
 	else
@@ -101,6 +118,12 @@ struct semantic_token_modifiers {
 	semantic_token_modifiers& declaration(bool state = true)
 	{
 		is_declaration = state;
+		return *this;
+	}
+
+	semantic_token_modifiers& definition(bool state = true)
+	{
+		is_definition = state;
 		return *this;
 	}
 
@@ -152,9 +175,27 @@ struct semantic_token_modifiers {
 		return *this;
 	}
 
-	semantic_token_modifiers& out_parameter(bool state = true)
+	semantic_token_modifiers& non_const_ref_parameter(bool state = true)
 	{
-		is_out_parameter = state;
+		is_non_const_ref_parameter = state;
+		return *this;
+	}
+
+	semantic_token_modifiers& non_const_ptr_parameter(bool state = true)
+	{
+		is_non_const_ptr_parameter = state;
+		return *this;
+	}
+
+	semantic_token_modifiers& ctor_or_dtor(bool state = true)
+	{
+		is_ctor_or_dtor = state;
+		return *this;
+	}
+
+	semantic_token_modifiers& user_defined(bool state = true)
+	{
+		is_user_defined = state;
 		return *this;
 	}
 
@@ -183,6 +224,7 @@ struct semantic_token_modifiers {
 	}
 
 	bool is_declaration    = false; // "declaration"
+	bool is_definition     = false; // "definition"
 	bool is_deprecated     = false; // "deprecated"
 	bool is_deduced        = false; // "deduced"
 	bool is_readonly       = false; // "readonly"
@@ -191,7 +233,10 @@ struct semantic_token_modifiers {
 	bool is_virtual        = false; // "virtual"
 	bool is_dependent_name = false; // "dependentName"
 	bool is_from_std_lib   = false; // "defaultLibrary"
-	bool is_out_parameter  = false; // "usedAsMutableReference"
+	bool is_non_const_ref_parameter = false; // "usedAsMutableReference"
+	bool is_non_const_ptr_parameter = false; // "usedAsMutablePointer"
+	bool is_ctor_or_dtor   = false; // "constructorOrDestructor"
+	bool is_user_defined   = false; // "userDefined"
 	semantic_token_scope_modifier scope = semantic_token_scope_modifier::none;
 };
 
@@ -199,6 +244,7 @@ constexpr bool operator==(semantic_token_modifiers lhs, semantic_token_modifiers
 {
 	return
 		lhs.is_declaration == rhs.is_declaration &&
+		lhs.is_definition == rhs.is_definition &&
 		lhs.is_deprecated == rhs.is_deprecated &&
 		lhs.is_deduced == rhs.is_deduced &&
 		lhs.is_readonly == rhs.is_readonly &&
@@ -207,7 +253,10 @@ constexpr bool operator==(semantic_token_modifiers lhs, semantic_token_modifiers
 		lhs.is_virtual == rhs.is_virtual &&
 		lhs.is_dependent_name == rhs.is_dependent_name &&
 		lhs.is_from_std_lib == rhs.is_from_std_lib &&
-		lhs.is_out_parameter == rhs.is_out_parameter &&
+		lhs.is_non_const_ref_parameter == rhs.is_non_const_ref_parameter &&
+		lhs.is_non_const_ptr_parameter == rhs.is_non_const_ptr_parameter &&
+		lhs.is_ctor_or_dtor == rhs.is_ctor_or_dtor &&
+		lhs.is_user_defined == rhs.is_user_defined &&
 		lhs.scope == rhs.scope;
 }
 
@@ -218,8 +267,13 @@ constexpr bool operator!=(semantic_token_modifiers lhs, semantic_token_modifiers
 
 inline std::ostream& operator<<(std::ostream& os, semantic_token_modifiers token_modifiers)
 {
+	os << "scope: " << std::setw(8) << utility::to_string(token_modifiers.scope) << " | modifiers: ";
+
 	if (token_modifiers.is_declaration)
 		os << "declaration, ";
+
+	if (token_modifiers.is_definition)
+		os << "definition, ";
 
 	if (token_modifiers.is_deprecated)
 		os << "deprecated, ";
@@ -245,10 +299,19 @@ inline std::ostream& operator<<(std::ostream& os, semantic_token_modifiers token
 	if (token_modifiers.is_from_std_lib)
 		os << "from_std_lib, ";
 
-	if (token_modifiers.is_out_parameter)
-		os << "out_parameter, ";
+	if (token_modifiers.is_non_const_ref_parameter)
+		os << "non_const_ref_parameter, ";
 
-	return os << "scope: " << utility::to_string(token_modifiers.scope);
+	if (token_modifiers.is_non_const_ptr_parameter)
+		os << "non_const_ptr_parameter, ";
+
+	if (token_modifiers.is_ctor_or_dtor)
+		os << "ctor_or_dtor, ";
+
+	if (token_modifiers.is_user_defined)
+		os << "user_defined, ";
+
+	return os;
 }
 
 // Return a function pointer instead of a value because tokens can have multiple modifiers.
@@ -262,6 +325,8 @@ inline apply_semantic_token_modifier_f* parse_semantic_token_modifier(std::strin
 
 	if (name == "declaration")
 		return +[](stm& m) { m.is_declaration = true; };
+	else if (name == "definition")
+		return +[](stm& m) { m.is_definition = true; };
 	else if (name == "deprecated")
 		return +[](stm& m) { m.is_deprecated = true; };
 	else if (name == "deduced")
@@ -279,7 +344,13 @@ inline apply_semantic_token_modifier_f* parse_semantic_token_modifier(std::strin
 	else if (name == "defaultLibrary")
 		return +[](stm& m) { m.is_from_std_lib = true; };
 	else if (name == "usedAsMutableReference")
-		return +[](stm& m) { m.is_out_parameter = true; };
+		return +[](stm& m) { m.is_non_const_ref_parameter = true; };
+	else if (name == "usedAsMutablePointer")
+		return +[](stm& m) { m.is_non_const_ptr_parameter = true; };
+	else if (name == "constructorOrDestructor")
+		return +[](stm& m) { m.is_ctor_or_dtor = true; };
+	else if (name == "userDefined")
+		return +[](stm& m) { m.is_user_defined = true; };
 	else if (name == "functionScope")
 		return +[](stm& m) { m.scope = stsm::function; };
 	else if (name == "classScope")
@@ -301,7 +372,7 @@ struct semantic_token_info
 
 inline std::ostream& operator<<(std::ostream& os, semantic_token_info info)
 {
-	return os << "type: " << utility::to_string(info.type) << "\nmodifiers: " << info.modifers << "\n";
+	return os << "type: " << std::setw(18) << utility::to_string(info.type) << " | " << info.modifers;
 }
 
 constexpr bool operator==(semantic_token_info lhs, semantic_token_info rhs)
@@ -359,8 +430,27 @@ struct semantic_token
 
 inline std::ostream& operator<<(std::ostream& os, semantic_token token)
 {
-	return os << "[" << token.pos << ", length: " << token.length << "]\n"
-		<< token.info << "color variance: " << token.color_variance << "\n";
+	return os << "[" << token.pos << ", len: " << std::setw(2) << token.length << "] "
+		<< token.info << "cv: " << token.color_variance << "\n";
 }
+
+struct semantic_token_decoder
+{
+	std::optional<semantic_token_info> decode_semantic_token(std::size_t type, std::size_t modifiers) const
+	{
+		if (type >= token_types.size())
+			return std::nullopt;
+
+		semantic_token_modifiers mods;
+		for (std::size_t i = 0; i < token_modifiers.size(); ++i)
+			if (((1u << i) & modifiers) != 0)
+				token_modifiers[i](mods);
+
+		return semantic_token_info{token_types[type], mods};
+	}
+
+	std::vector<semantic_token_type> token_types;
+	std::vector<apply_semantic_token_modifier_f*> token_modifiers;
+};
 
 }

@@ -16,9 +16,11 @@
 
 namespace py = pybind11;
 
+namespace ach::bind {
+
 namespace {
 
-std::string to_string(const ach::mirror::highlighter_error& error)
+std::string to_string(const mirror::highlighter_error& error)
 {
 	std::stringstream ss;
 	ss << error;
@@ -46,16 +48,16 @@ py::str run_mirror_highlighter(
 		throw py::value_error("argument 'empty_token_char' should be 1 character");
 	}
 
-	const auto result = ach::mirror::run_highlighter(
+	const auto result = mirror::run_highlighter(
 		code,
 		color,
-		ach::mirror::highlighter_options{
-			ach::mirror::generation_options{
+		mirror::highlighter_options{
+			mirror::generation_options{
 				replace_underscores_to_hyphens,
 				table_wrap_css_class,
 				valid_css_classes
 			},
-			ach::mirror::color_options{
+			mirror::color_options{
 				num_keyword, str_keyword, chr_keyword,
 				num_class,
 				str_class, str_esc_class,
@@ -65,26 +67,26 @@ py::str run_mirror_highlighter(
 			}
 		});
 
-	return std::visit(ach::utility::visitor{
+	return std::visit(utility::visitor{
 		[](const std::string& output) {
 			return py::str(output);
 		},
-		[](ach::mirror::highlighter_error error) -> py::str {
+		[](mirror::highlighter_error error) -> py::str {
 			throw std::runtime_error(to_string(error));
 		}
 	}, result);
 }
 
-std::vector<ach::clangd::semantic_token_type> parse_semantic_token_types(const py::list& list_semantic_token_types)
+std::vector<clangd::semantic_token_type> parse_semantic_token_types(const py::list& list_semantic_token_types)
 {
-	std::vector<ach::clangd::semantic_token_type> result;
+	std::vector<clangd::semantic_token_type> result;
 	result.reserve(list_semantic_token_types.size());
 
 	for (const auto& token_type : list_semantic_token_types) {
 		const auto name = token_type.cast<std::string_view>();
 
-		std::optional<ach::clangd::semantic_token_type> token_result =
-			ach::clangd::parse_semantic_token_type(name);
+		std::optional<clangd::semantic_token_type> token_result =
+			clangd::parse_semantic_token_type(name);
 
 		if (token_result == std::nullopt)
 			throw py::value_error(std::string("unknown SemanticToken type: ").append(name).c_str());
@@ -95,16 +97,16 @@ std::vector<ach::clangd::semantic_token_type> parse_semantic_token_types(const p
 	return result;
 }
 
-std::vector<ach::clangd::apply_semantic_token_modifier_f*>
+std::vector<clangd::apply_semantic_token_modifier_f*>
 parse_semantic_token_modifiers(const py::list& list_semantic_token_modifiers)
 {
-	std::vector<ach::clangd::apply_semantic_token_modifier_f*> result;
+	std::vector<clangd::apply_semantic_token_modifier_f*> result;
 	result.reserve(list_semantic_token_modifiers.size());
 
 	for (const auto& token_modifier : list_semantic_token_modifiers) {
 		const auto name = token_modifier.cast<std::string_view>();
 
-		ach::clangd::apply_semantic_token_modifier_f* fptr = ach::clangd::parse_semantic_token_modifier(name);
+		clangd::apply_semantic_token_modifier_f* fptr = clangd::parse_semantic_token_modifier(name);
 
 		if (fptr == nullptr)
 			throw py::value_error(std::string("unknown SemanticToken modifier: ").append(name).c_str());
@@ -115,26 +117,20 @@ parse_semantic_token_modifiers(const py::list& list_semantic_token_modifiers)
 	return result;
 }
 
-ach::clangd::semantic_token_info get_semantic_token_info(
-	const std::vector<ach::clangd::semantic_token_type>& semantic_token_types,
-	const std::vector<ach::clangd::apply_semantic_token_modifier_f*>& semantic_token_modifiers,
+clangd::semantic_token_info get_semantic_token_info(
+	const clangd::semantic_token_decoder& decoder,
 	const pybind11::handle& semantic_token)
 {
 	const auto token_type = semantic_token.attr("token_type").cast<std::size_t>();
-
-	if (token_type >= semantic_token_types.size()) {
-		throw py::value_error(("SemanticToken has token_type " + std::to_string(token_type) + " but only "
-			+ std::to_string(semantic_token_types.size()) + " token types were reported!").c_str());
-	}
-
 	const auto token_modifiers = semantic_token.attr("token_modifiers").cast<std::size_t>();
 
-	ach::clangd::semantic_token_modifiers mods;
-	for (std::size_t i = 0; i < semantic_token_modifiers.size(); ++i)
-		if (((1u << i) & token_modifiers) != 0)
-			semantic_token_modifiers[i](mods);
+	std::optional<clangd::semantic_token_info> decoded = decoder.decode_semantic_token(token_type, token_modifiers);
+	if (!decoded) {
+		throw py::value_error(("SemanticToken has token_type " + std::to_string(token_type) + " but only "
+			+ std::to_string(decoder.token_types.size()) + " token types were reported!").c_str());
+	}
 
-	return ach::clangd::semantic_token_info{semantic_token_types[token_type], mods};
+	return *decoded;
 }
 
 std::vector<std::string> parse_keywords(const py::list& list_keywords)
@@ -148,72 +144,85 @@ std::vector<std::string> parse_keywords(const py::list& list_keywords)
 	return result;
 }
 
-std::string to_string(const ach::clangd::highlighter_error& error)
+std::string to_string(const clangd::highlighter_error& error)
 {
 	std::stringstream ss;
 	ss << error;
 	return ss.str();
 }
 
+struct clangd_highlighter
+{
+	clangd::semantic_token_decoder decoder;
+	clangd::highlighter hl;
+
+	// allocation reuse
+	mutable std::vector<clangd::semantic_token> semantic_tokens;
+};
+
+clangd_highlighter make_clangd_highlighter(
+	const py::list& legend_semantic_token_types,
+	const py::list& legend_semantic_token_modifiers,
+	const py::list& keywords)
+{
+	return clangd_highlighter{
+		clangd::semantic_token_decoder{
+			parse_semantic_token_types(legend_semantic_token_types),
+			parse_semantic_token_modifiers(legend_semantic_token_modifiers)
+		},
+		clangd::highlighter(parse_keywords(keywords)),
+		{}
+	};
+}
+
 py::str run_clangd_highlighter(
+	const clangd_highlighter& chl,
 	std::string_view code,
-	const py::list& list_semantic_token_types,
-	const py::list& list_semantic_token_modifiers,
 	const py::list& list_semantic_tokens,
-	const py::list& list_keywords,
 	std::string_view table_wrap_css_class,
 	int color_variants,
 	bool highlight_printf_formatting)
 {
-	const std::vector<ach::clangd::semantic_token_type> semantic_token_types =
-		parse_semantic_token_types(list_semantic_token_types);
-
-	const std::vector<ach::clangd::apply_semantic_token_modifier_f*> semantic_token_modifiers =
-		parse_semantic_token_modifiers(list_semantic_token_modifiers);
-
-	const std::vector<std::string> keywords = parse_keywords(list_keywords);
-
-	std::vector<ach::clangd::semantic_token> semantic_tokens;
-	semantic_tokens.reserve(list_semantic_tokens.size());
+	chl.semantic_tokens.clear();
+	chl.semantic_tokens.reserve(list_semantic_tokens.size());
 
 	for (const auto& token : list_semantic_tokens) {
-		semantic_tokens.push_back(ach::clangd::semantic_token{
-			ach::text::position{
+		chl.semantic_tokens.push_back(clangd::semantic_token{
+			text::position{
 				token.attr("line").cast<std::size_t>(),
 				token.attr("column").cast<std::size_t>()
 			},
 			token.attr("length").cast<std::size_t>(),
-			get_semantic_token_info(semantic_token_types, semantic_token_modifiers, token),
-			ach::clangd::semantic_token_color_variance{
+			get_semantic_token_info(chl.decoder, token),
+			clangd::semantic_token_color_variance{
 				token.attr("color_variant").cast<int>(),
 				token.attr("last_reference").cast<bool>()
 			}
 		});
 	}
 
-	const std::variant<std::string, ach::clangd::highlighter_error> result = ach::clangd::run_highlighter(
+	const std::variant<std::string, clangd::highlighter_error> result = chl.hl.run(
 		code,
-		ach::utility::range<const ach::clangd::semantic_token*>{
-			semantic_tokens.data(), semantic_tokens.data() + semantic_tokens.size()},
-		ach::utility::range<const std::string*>{keywords.data(), keywords.data() + keywords.size()},
-		ach::clangd::highlighter_options{table_wrap_css_class, color_variants, highlight_printf_formatting});
+		{chl.semantic_tokens.data(), chl.semantic_tokens.data() + chl.semantic_tokens.size()},
+		clangd::highlighter_options{table_wrap_css_class, color_variants, highlight_printf_formatting});
 
-	return std::visit(ach::utility::visitor{
+	return std::visit(utility::visitor{
 		[](const std::string& output) {
 			return py::str(output);
 		},
-		[](ach::clangd::highlighter_error error) -> py::str {
+		[](clangd::highlighter_error error) -> py::str {
 			throw std::runtime_error(to_string(error));
 		}
 	}, result);
 }
 
 }
+}
 
 PYBIND11_MODULE(pyach, m) {
 	m.doc() = ach::utility::program_description;
 
-	m.def("run_mirror_highlighter", &run_mirror_highlighter,
+	m.def("run_mirror_highlighter", &ach::bind::run_mirror_highlighter,
 		py::arg("code").none(false),
 		py::arg("color").none(false),
 		py::arg("num_keyword")      = ach::mirror::color_options::default_num_keyword,
@@ -230,15 +239,17 @@ PYBIND11_MODULE(pyach, m) {
 		py::arg("valid_css_classes")    = "",
 		py::arg("replace") = false);
 
-	m.def("run_clangd_highlighter", &run_clangd_highlighter,
-		py::arg("code").none(false),
-		py::arg("semantic_token_types").none(false),
-		py::arg("semantic_token_modifiers").none(false),
-		py::arg("semantic_tokens").none(false),
-		py::arg("keywords").none(false),
-		py::arg("table_wrap_css_class") = "",
-		py::arg("color_variants") = ach::clangd::highlighter_options{}.color_variants,
-		py::arg("highlight_printf_formatting") = ach::clangd::highlighter_options{}.highlight_printf_formatting);
+	py::class_<ach::bind::clangd_highlighter>(m, "ClangdHighlighter")
+		.def(py::init(&ach::bind::make_clangd_highlighter),
+			py::arg("semantic_token_types").none(false),
+			py::arg("semantic_token_modifiers").none(false),
+			py::arg("keywords").none(false))
+		.def("run", &ach::bind::run_clangd_highlighter,
+			py::arg("code").none(false),
+			py::arg("semantic_tokens").none(false),
+			py::arg("table_wrap_css_class") = "",
+			py::arg("color_variants") = ach::clangd::highlighter_options{}.color_variants,
+			py::arg("highlight_printf_formatting") = ach::clangd::highlighter_options{}.highlight_printf_formatting);
 
 	m.def("version", []() {
 		namespace av = ach::utility::version;

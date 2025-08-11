@@ -9,12 +9,15 @@ find_package(Boost 1.65 REQUIRED
 # create target and set its properties
 
 add_executable(ach_test
-	main.cpp
+	clangd_common.hpp
 	algorithm_tests.cpp
-	text_extractor_tests.cpp
-	mirror_tests.cpp
-	splice_tests.cpp
 	code_tokenizer_tests.cpp
+	find_matching_tokens_tests.cpp
+	main.cpp
+	mirror_tests.cpp
+	semantic_tokens_tests.cpp
+	splice_tests.cpp
+	text_extractor_tests.cpp
 )
 
 target_include_directories(ach_test

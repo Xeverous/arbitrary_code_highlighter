@@ -71,6 +71,15 @@ void html_builder::open_span(css_class class_, bool replace_underscores_to_hyphe
 	result += "\">";
 }
 
+void html_builder::open_span(css_class class1, css_class class2, bool replace_underscores_to_hyphens)
+{
+	result += "<span class=\"";
+	append_class(class1, replace_underscores_to_hyphens);
+	result += " ";
+	append_class(class2, replace_underscores_to_hyphens);
+	result += "\">";
+}
+
 void html_builder::close_span()
 {
 	result += "</span>";

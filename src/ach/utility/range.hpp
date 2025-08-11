@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iterator>
+
 namespace ach::utility {
 
 template <typename Iterator>
@@ -9,6 +11,9 @@ struct range
 	constexpr Iterator begin() const { return first; }
 	constexpr Iterator end() const { return last; }
 	constexpr auto size() const { return last - first; }
+
+	constexpr auto& front() const { return *first; }
+	constexpr auto& back() const { return *std::prev(last); }
 
 	Iterator first;
 	Iterator last;

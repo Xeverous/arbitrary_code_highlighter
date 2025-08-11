@@ -119,6 +119,30 @@ struct literal_string
 template <>
 struct is_parser<literal_string> : std::true_type {};
 
+struct fixed_length
+{
+	template <typename ForwardIterator>
+	bool operator()(ForwardIterator& first, const ForwardIterator& last)
+	{
+		ForwardIterator it = first;
+		int total = 0;
+		while (total < n) {
+			if (it == last)
+				return false;
+
+			++total;
+			++it;
+		}
+
+		first = it;
+		return true;
+	}
+
+	int n;
+};
+template <>
+struct is_parser<fixed_length> : std::true_type {};
+
 // parser modifiers
 
 template <typename Parser>
@@ -414,6 +438,16 @@ inline auto printf_formatting =
 		| literal_char{'g'} | literal_char{'G'} | literal_char{'n'} | literal_char{'p'}
 	);
 
+inline auto symbol =
+	parsers::specific_char{[](char c) {
+		return c == '!' || c == '%' || c == '&'
+		|| (0x28 <= c && c <= 0x2f) // '(', ')', '*', '+', ',', '-', '.', '/'
+		|| (0x3a <= c && c <= 0x3f) // ':', ';', '<', '=', '>', '?'
+		|| c == '[' || c == ']' || c == '^' || c == '{' || c == '|' || c == '}' || c == '~';
+	}}
+	- parsers::literal_string{"//"}
+	- parsers::literal_string{"/*"};
+
 } // namespace parsers
 
 } // namespace
@@ -426,6 +460,11 @@ text::fragment spliced_text_parser::parse_exactly(char c)
 text::fragment spliced_text_parser::parse_exactly(std::string_view str)
 {
 	return parse(parsers::literal_string{str});
+}
+
+text::fragment spliced_text_parser::parse_n_chars(int n)
+{
+	return parse(parsers::fixed_length{n});
 }
 
 text::fragment spliced_text_parser::parse_newlines()
@@ -506,14 +545,14 @@ text::fragment spliced_text_parser::parse_raw_string_literal_body(std::string_vi
 	return parse(+(parsers::any_char{} - (parsers::literal_char{')'} >> parsers::literal_string{delimeter})));
 }
 
+text::fragment spliced_text_parser::parse_symbol()
+{
+	return parse(parsers::symbol);
+}
+
 text::fragment spliced_text_parser::parse_symbols()
 {
-	return parse(+(parsers::specific_char{[](char c) {
-		return c == '!' || c == '%' || c == '&'
-		|| (0x28 <= c && c <= 0x2f) // '(', ')', '*', '+', ',', '-', '.', '/'
-		|| (0x3a <= c && c <= 0x3f) // ':', ';', '<', '=', '>', '?'
-		|| c == '[' || c == ']' || c == '^' || c == '{' || c == '|' || c == '}' || c == '~';
-	}} - parsers::literal_string{"//"} - parsers::literal_string{"/*"}));
+	return parse(+parsers::symbol);
 }
 
 text::fragment spliced_text_parser::parse_comment_tag_todo()

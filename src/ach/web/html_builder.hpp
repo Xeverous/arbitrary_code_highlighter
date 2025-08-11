@@ -12,6 +12,7 @@ class html_builder
 public:
 	explicit html_builder() = default;
 
+	void reset() { result.clear(); }
 	void reserve(std::size_t n) { result.reserve(n); };
 	void add_span(simple_span_element span, bool replace_underscores_to_hyphens = false);
 	void add_span(quote_span_element span, bool replace_underscores_to_hyphens = false);
@@ -23,6 +24,7 @@ public:
 	const std::string& str() const noexcept { return result; }
 
 	void open_span(css_class class_, bool replace_underscores_to_hyphens = false);
+	void open_span(css_class class1, css_class class2, bool replace_underscores_to_hyphens = false);
 	void close_span();
 	void append_raw(std::string_view text);
 

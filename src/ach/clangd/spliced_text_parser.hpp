@@ -35,6 +35,7 @@ public:
 
 	text::fragment parse_exactly(char c);
 	text::fragment parse_exactly(std::string_view str);
+	text::fragment parse_n_chars(int n);
 	text::fragment parse_newlines();
 
 	text::fragment parse_preprocessor_diagnostic_message();
@@ -54,7 +55,8 @@ public:
 
 	// symbols that are valid C++ code tokens and do not affect tokenizer's state
 	// (e.g. '{', '}', ';' and many symbol operators but not '"')
-	text::fragment parse_symbols();
+	text::fragment parse_symbol();  // exactly 1
+	text::fragment parse_symbols(); // as many in a row as possible
 
 	text::fragment parse_comment_tag_todo();
 	text::fragment parse_comment_tag_doxygen();

@@ -1,6 +1,9 @@
 #pragma once
 
+#include <ach/text/utils.hpp>
+
 #include <cassert>
+#include <iomanip>
 #include <string_view>
 #include <tuple>
 #include <ostream>
@@ -60,7 +63,7 @@ constexpr bool operator>=(position lhs, position rhs) noexcept
 inline std::ostream& operator<<(std::ostream& os, position pos)
 {
 	// index is 0-based, add 1 for human output
-	return os << "line: " << pos.line + 1 << ", column: " << pos.column + 1;
+	return os << "line: " << std::setw(3) << pos.line + 1 << ", col: " << std::setw(3) << pos.column + 1;
 }
 
 struct span
@@ -141,6 +144,11 @@ constexpr bool operator!=(range lhs, range rhs)
 	return !(lhs == rhs);
 }
 
+inline std::ostream& operator<<(std::ostream& os, range r)
+{
+	return os << "[[" << r.first << "], [" << r.last << "]]";
+}
+
 struct fragment
 {
 	std::string_view str;
@@ -165,14 +173,14 @@ constexpr bool operator!=(fragment lhs, fragment rhs)
 
 inline std::ostream& operator<<(std::ostream& os, fragment frag)
 {
-	return os << "range: [[" << frag.r.first << "], [" << frag.r.last << "]]\n"
-		"str: \"" << frag.str << "\"\n";
+	constexpr auto adjusted_width = 20;
+	return os << frag.r << " " << text::sanitized_whitespace{frag.str, adjusted_width};
 }
 
 class text_iterator
 {
 public:
-	constexpr text_iterator(const char* ptr, position pos)
+	constexpr text_iterator(const char* ptr, position pos = {})
 	: m_it(ptr), m_position(pos)
 	{}
 

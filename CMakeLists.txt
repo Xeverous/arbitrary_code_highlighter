@@ -35,6 +35,11 @@ option(ACH_BUILD_TESTS
 	"build ACH tests" ON)
 option(ACH_ENABLE_LTO
 	"enable link-time optimization for ACH targets" ON)
+# in case of error "ASan runtime does not come first in initial library list"
+# use export ASAN_OPTIONS=verify_asan_link_order=0 in shell
+# https://stackoverflow.com/a/59894695/4818802
+option(ACH_ENABLE_SANITIZERS
+	"build ACH with address and UB sanitizer support" OFF)
 
 ##############################################################################
 # specify explicitly where to output all binary objects

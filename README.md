@@ -147,18 +147,11 @@ Additional remarks:
 
 ## Documentation - clangd
 
+ACH does only basic tokenization (keywords, identifiers, literals, preprocessor and comments). No proper C++ parsing takes place. It works by first splitting the code into these fundamental syntax categories, then tries to improve this information by application of semantic token information - most of which augments identifiers. Other parts of syntax like literals, comments and keywords are generally not reported by clangd.
+
 This section assumes the reader is familiar with [LSP](https://microsoft.github.io/language-server-protocol/overviews/lsp/overview/), particularly with the [Semantic Tokens call](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_semanticTokens). If not, read the Semantic Tokens section now.
 
 Clangd has no documentation how exactly it implements LSP. Because LSP gives some freedom of implementation (like defining custom token types and modifiers, in addition to the standard ones) the information below is based on own experiments.
-
-As of clangd 15.0.2, all of reported tokens are:
-
-- preprocessor-disabled code (whole lines)
-- preprocessor macro names (only macro definitions, if the macro has a body and the body uses other macros those are not reported)
-- macro usages outside preprocessor code (if the macro has parameters they *may* be reported)
-- identifiers that name C++ entities
-
-Keywords and special constructs like literal prefixes/suffixes and overloaded operators are not reported.
 
 Reported types (each token has exactly 1 type):
 
@@ -167,31 +160,47 @@ Reported types (each token has exactly 1 type):
 - types: `class`, `interface`, `enum`, `type`
 - templates: `typeParameter` (both TTP and NTTP), `concept`
 - `namespace`
-- `comment` (used to report preprocessor-disabled code, not comments)
-- `macro` (definitions in preprocessor and usages outside preprocessor)
+- `comment` (used to report preprocessor-disabled code, not comments) (always a whole line)
+- `macro` (definitions in preprocessor and usages outside preprocessor - if the macro has a body and the body uses other macros those are not reported)
+- `modifier` - `override` and `final` when used as intended
+- `operator` - both built-in and overloaded
+- `bracket` - `<` and `>` when not used as operator and not used in preprocessor
+- `label`
 - `unknown`
 
-Reported modifiers (each token can have 0+ modifiers):
+Reported modifiers as of clangd 20.1.8 (each token can have 0+ modifiers):
 
 - `declaration`
+- `definition`
 - `deprecated`
-- `deduced`
-- `readonly`
+- `deduced` (applies to `auto` when possible - e.g. in initializer but not in generic lambdas)
+- `readonly` (`const` and `constexpr`)
 - `static`
 - `abstract`
 - `virtual`
 - `dependentName`
-- `defaultLibrary`
+- `defaultLibrary` (standard library entities)
 - `usedAsMutableReference`
+- `usedAsMutablePointer`
+- `constructorOrDestructor`
+- `userDefined` (e.g. overloaded operators)
 - 0 or 1 of `functionScope`, `classScope`, `fileScope`, `globalScope`
 
 Discoveries and details:
 
-- `declaration` works more like "definition" - it's present when the entity appears for the first time (e.g. type definition, function parameter name in the parameters list).
-- Keywords are not reported (LSP assumes other tools are aware of basic syntax like comments, keywords and literals) except `auto` which *may* be reported if it substitues a type name (other uses of `auto` such as trailing retun type syntax are not reported). In such case the token will have appropriate type (e.g. `enum`, `class`) and *may* have the `deduced` token modifier (deduction is not always possible - particularly in generic lambdas and templates).
+- Literals and their prefixes/suffixes are not reported.
+- Generally, keywords are not reported but:
+
+  - `auto` is reported when used as a type deduction, e.g. `auto x = f();` (with semantic info about deduced type, as if auto wasn't used)
+  - `auto` is not reported when used as return type, e.g. `auto f() { return /* ... */; }`
+  - `auto` is not repoeted when used in trailing return type syntax, e.g. `auto f() -> T;`
+  - `override`, `final` is reported when used as entity names (type depends on entity)
+  - `override`, `final` is reported when used as intended (type = modifier)
+  - `declaration` works more like "definition" - it's present when the entity appears for the first time (e.g. type definition, function parameter name in the parameters list).
+
 - `readonly` is present for `const` and `constexpr` objects, including references (e.g. parameter names that have const reference type).
 - `static` is not reported for every entity using `static` keyword in C and C++. It's present only for static class members (`static` non-member functions and globals do not have this token modifier).
-- `usedAsMutableReference` is reported for objects passed by non-const reference, only at the caller side.
+- `usedAsMutableReference` is reported for objects passed by non-const reference, only at the caller side. Analogically `usedAsMutablePointer`.
 - All or almost all entities will have set one of scope modifiers. It's basically entity's visibility.
 - Macro calls outside preprocessor lines are reported. If such macros have parameters, they *may* be reported depending on how they are being used inside the macro (basically it depends on what the macro parameter becomes after macro expansion).
 

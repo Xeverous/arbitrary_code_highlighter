@@ -1,7 +1,6 @@
 #include <ach/clangd/code_tokenizer.hpp>
 #include <ach/clangd/splice_utils.hpp>
 
-#include <iterator>
 #include <string_view>
 
 namespace ach::clangd {
@@ -15,15 +14,6 @@ bool is_keyword(std::string_view identifier, utility::range<const std::string*> 
 			return true;
 
 	return false;
-}
-
-bool matches_semantic_tokens(text::fragment identifier, utility::range<const semantic_token*> sem_tokens)
-{
-	if (sem_tokens.empty())
-		return false;
-
-	return identifier.r.first == sem_tokens.first->pos_begin()
-		&& identifier.r.last == std::prev(sem_tokens.last)->pos_end();
 }
 
 preprocessor_state_t preprocessor_directive_to_state(std::string_view directive)
@@ -54,78 +44,41 @@ preprocessor_state_t preprocessor_directive_to_state(std::string_view directive)
 
 }
 
-std::string_view code_tokenizer::semantic_token_str(semantic_token sem_token) const
-{
-	auto it = m_parser.current_iterator().to_text_iterator();
-	assert(it.position() <= sem_token.pos_begin());
-	while (it.position() < sem_token.pos_begin())
-		++it;
-
-	return {it.pointer(), sem_token.length};
-}
-
-bool code_tokenizer::advance_semantic_tokens()
-{
-	m_current_semantic_tokens.first = m_current_semantic_tokens.last;
-
-	auto it = m_current_semantic_tokens.first;
-	while (it != m_all_semantic_tokens.last) {
-		if (ends_with_backslash_whitespace(semantic_token_str(*it))) {
-			// the token is spliced
-			if (it->info == m_current_semantic_tokens.first->info)
-				++it; // spliced parts should have the same info...
-			else
-				return false; // ...if not, the semantic token data is invalid
-		}
-		else {
-			// no more splice: accept the token and stop the loop
-			// no test of info here as 2 adjacent tokens may have the same info by accident
-			++it;
-			break;
-		}
-	}
-
-	m_current_semantic_tokens.last = it;
-	return true;
-}
-
 void code_tokenizer::on_parsed_newline()
 {
 	m_preprocessor_state = preprocessor_state_t::line_begin;
 	m_preprocessor_macro_params.clear();
 }
 
-std::variant<code_token, highlighter_error>
-code_tokenizer::next_code_token(utility::range<const std::string*> keywords, bool highlight_printf_formatting)
+[[nodiscard]] std::optional<highlighter_error>
+code_tokenizer::fill_with_tokens(bool highlight_printf_formatting, std::vector<code_token>& tokens)
 {
-	if (m_disabled_code_end_pos == current_position()) {
-		m_disabled_code_end_pos = std::nullopt;
-		return code_token{syntax_token::disabled_code_end, empty_match()};
+	tokens.clear();
+
+	while (true) {
+		std::variant<code_token, highlighter_error> token_or_error = next_code_token(highlight_printf_formatting);
+
+		if (std::holds_alternative<highlighter_error>(token_or_error))
+			return std::get<highlighter_error>(token_or_error);
+
+		tokens.push_back(std::get<code_token>(token_or_error));
+
+		if (tokens.back().syntax_element == syntax_element_type::end_of_input)
+			return std::nullopt;
 	}
+}
 
-	if (!m_current_semantic_tokens.empty()) {
-		const semantic_token& stok = *m_current_semantic_tokens.first;
-
-		if (current_position() > stok.pos)
-			return make_error(error_reason::internal_error_missed_semantic_token);
-
-		if (stok.info.type == semantic_token_type::disabled_code && stok.pos == current_position()) {
-			const semantic_token& last_stok = *(m_current_semantic_tokens.last - 1);
-			m_disabled_code_end_pos = text::position{last_stok.pos.line, last_stok.pos.column + last_stok.length};
-			if (!advance_semantic_tokens())
-				return make_error(error_reason::invalid_semantic_token_data);
-			return code_token{syntax_token::disabled_code_begin, empty_match()};
-		}
-	}
-
+std::variant<code_token, highlighter_error>
+code_tokenizer::next_code_token(bool highlight_printf_formatting)
+{
 	switch (m_context_state) {
 		case context_state_t::literal_end_optional_suffix:
 			m_context_state = context_state_t::none;
 			if (text::fragment identifier = m_parser.parse_identifier(); !identifier.empty())
-				return code_token{syntax_token::literal_suffix, identifier};
+				return code_token(identifier, syntax_element_type::literal_suffix);
 			[[fallthrough]];
 		case context_state_t::none:
-			return next_code_token_context_none(keywords);
+			return next_code_token_context_none();
 		case context_state_t::comment_single:
 			return next_code_token_context_comment(false, false);
 		case context_state_t::comment_single_doxygen:
@@ -136,7 +89,7 @@ code_tokenizer::next_code_token(utility::range<const std::string*> keywords, boo
 			return next_code_token_context_comment(true, true);
 		case context_state_t::comment_end:
 			m_context_state = context_state_t::none;
-			return code_token{syntax_token::comment_end, empty_match()};
+			return code_token(empty_match(), syntax_element_type::comment_end);
 		case context_state_t::literal_character:
 			return next_code_token_context_quoted_literal('\'', false, highlight_printf_formatting);
 		case context_state_t::literal_string:
@@ -144,7 +97,7 @@ code_tokenizer::next_code_token(utility::range<const std::string*> keywords, boo
 		case context_state_t::literal_string_raw_quote_open:
 			if (text::fragment quote = m_parser.parse_exactly('"'); !quote.empty()) {
 				m_context_state = context_state_t::literal_string_raw_delimeter_open;
-				return code_token{syntax_token::literal_string_raw_quote, quote};
+				return code_token(quote, syntax_element_type::literal_string_raw_quote);
 			}
 			return make_error(error_reason::internal_error_raw_string_literal_quote_open);
 			/////////////// splice off
@@ -152,13 +105,13 @@ code_tokenizer::next_code_token(utility::range<const std::string*> keywords, boo
 			m_context_state = context_state_t::literal_string_raw_paren_open;
 			if (text::fragment delimeter = m_parser.parse_raw_string_literal_delimeter_open(); !delimeter.empty()) {
 				m_raw_string_literal_delimeter = delimeter;
-				return code_token{syntax_token::literal_string_raw_delimeter, delimeter};
+				return code_token(delimeter, syntax_element_type::literal_string_raw_delimeter);
 			}
 			[[fallthrough]];
 		case context_state_t::literal_string_raw_paren_open:
 			if (text::fragment paren = m_parser.parse_exactly('('); !paren.empty()) {
 				m_context_state = context_state_t::literal_string_raw_body;
-				return code_token{syntax_token::literal_string_raw_paren, paren};
+				return code_token(paren, syntax_element_type::literal_string_raw_paren);
 			}
 			return make_error(error_reason::internal_error_raw_string_literal_paren_open);
 		case context_state_t::literal_string_raw_body:
@@ -167,13 +120,13 @@ code_tokenizer::next_code_token(utility::range<const std::string*> keywords, boo
 			// - raw string delimeters can not be spliced so std::string_view can be used directly
 			m_context_state = context_state_t::literal_string_raw_paren_close;
 			if (text::fragment body = m_parser.parse_raw_string_literal_body(m_raw_string_literal_delimeter.str); !body.empty()) {
-				return code_token{syntax_token::literal_string, body};
+				return code_token(body, syntax_element_type::literal_string);
 			}
 			[[fallthrough]];
 		case context_state_t::literal_string_raw_paren_close:
 			if (text::fragment paren = m_parser.parse_exactly(')'); !paren.empty()) {
 				m_context_state = context_state_t::literal_string_raw_delimeter_close;
-				return code_token{syntax_token::literal_string_raw_paren, paren};
+				return code_token(paren, syntax_element_type::literal_string_raw_paren);
 			}
 			return make_error(error_reason::internal_error_raw_string_literal_paren_close);
 		case context_state_t::literal_string_raw_delimeter_close: {
@@ -181,14 +134,14 @@ code_tokenizer::next_code_token(utility::range<const std::string*> keywords, boo
 			const std::string_view delimeter = m_raw_string_literal_delimeter.str;
 			m_raw_string_literal_delimeter = {};
 			if (text::fragment delim = m_parser.parse_raw_string_literal_delimeter_close(delimeter); !delim.empty()) {
-				return code_token{syntax_token::literal_string_raw_delimeter, delim};
+				return code_token(delim, syntax_element_type::literal_string_raw_delimeter);
 			}
 			[[fallthrough]];
 		}
 		case context_state_t::literal_string_raw_quote_close:
 			if (text::fragment quote = m_parser.parse_exactly('"'); !quote.empty()) {
 				m_context_state = context_state_t::none;
-				return code_token{syntax_token::literal_string_raw_quote, quote};
+				return code_token(quote, syntax_element_type::literal_string_raw_quote);
 			}
 			return make_error(error_reason::internal_error_raw_string_literal_quote_close);
 		/////////////// TODO splice on
@@ -197,66 +150,92 @@ code_tokenizer::next_code_token(utility::range<const std::string*> keywords, boo
 	return make_error(error_reason::internal_error_unhandled_context);
 }
 
-std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_context_none(utility::range<const std::string*> keywords)
+std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_context_none()
 {
 	if (m_parser.has_reached_end())
-		return code_token{syntax_token::end_of_input, empty_match()};
+		return code_token(empty_match(), syntax_element_type::end_of_input);
 
 	// comments are first because they are higher in parsing priority than almost anything else
 	// the else are: trigraphs (unsupported) and splice (implemented at the level of the iterator)
 
 	if (text::fragment comment_start = m_parser.parse_exactly("///"); !comment_start.empty()) {
 		m_context_state = context_state_t::comment_single_doxygen;
-		return code_token{syntax_token::comment_begin_single_doxygen, comment_start};
+		return code_token(comment_start, syntax_element_type::comment_begin_single_doxygen);
 	}
 
 	if (text::fragment comment_start = m_parser.parse_exactly("//"); !comment_start.empty()) {
 		m_context_state = context_state_t::comment_single;
-		return code_token{syntax_token::comment_begin_single, comment_start};
+		return code_token(comment_start, syntax_element_type::comment_begin_single);
 	}
 
 	// "/**/" has to be detected explicitly because it contains "/**" which starts a doc comment
 	if (text::fragment comment_start = m_parser.parse_exactly("/**/"); !comment_start.empty()) {
 		m_context_state = context_state_t::comment_end;
-		return code_token{syntax_token::comment_begin_multi, comment_start};
+		return code_token(comment_start, syntax_element_type::comment_begin_multi);
 	}
 
 	if (text::fragment comment_start = m_parser.parse_exactly("/**"); !comment_start.empty()) {
 		m_context_state = context_state_t::comment_multi_doxygen;
-		return code_token{syntax_token::comment_begin_multi_doxygen, comment_start};
+		return code_token(comment_start, syntax_element_type::comment_begin_multi_doxygen);
 	}
 
 	if (text::fragment comment_start = m_parser.parse_exactly("/*"); !comment_start.empty()) {
 		m_context_state = context_state_t::comment_multi;
-		return code_token{syntax_token::comment_begin_multi, comment_start};
+		return code_token(comment_start, syntax_element_type::comment_begin_multi);
 	}
 
 	if (text::fragment whitespace = m_parser.parse_non_newline_whitespace(); !whitespace.empty()) {
-		return code_token{syntax_token::whitespace, whitespace};
+		return code_token(whitespace, syntax_element_type::whitespace);
 	}
 
 	if (text::fragment newlines = m_parser.parse_newlines(); !newlines.empty()) {
 		on_parsed_newline();
-		return code_token{syntax_token::whitespace, newlines};
+		return code_token(newlines, syntax_element_type::whitespace);
 	}
 
+	/* preprocessor parsing design notes
+
+	// varying number of tokens, may even do #if __has_include(<file>)
+	// best approach: accept anything as pp-other but color string and file literals
+	#if // #if, #ifdef, #ifndef, #else, #elif, #elifdef, #elifndef, #endif
+
+	// pp-hash pp-directive pp-macro-name pp-macro-body
+	#define IDENTIFIER identifier
+	// pp-hash pp-directive pp-macro-name
+	// strategy: pp-macro-param + keywords + literals + #/##
+	#define IDENTIFIER(param) text with param or with #param or with##param
+	// pp-hash pp-directive pp-macro-name
+	#undef IDENTIFIER
+
+	#include "file"      // pp-hash pp-directive pp-file
+	#include <file>      // pp-hash pp-directive pp-file
+	#include MACRO       // pp-hash pp-directive pp-other
+	#line 123            // pp-hash pp-directive int-literal
+	#line 123 "filename" // pp-hash pp-directive int-literal file-literal
+
+	// best approach: anything further is only pp-other (not a string literal)
+	#error   text...
+	#warning text...
+	#pragma  text...
+	#unknown_directive text...
+	*/
 	switch (m_preprocessor_state) {
 		case preprocessor_state_t::line_begin: {
 			if (text::fragment literal = m_parser.parse_exactly('#'); !literal.empty()) {
 				m_preprocessor_state = preprocessor_state_t::preprocessor_after_hash;
-				return code_token{syntax_token::preprocessor_hash, literal};
+				return code_token(literal, syntax_element_type::preprocessor_hash);
 			}
 
 			m_preprocessor_state = preprocessor_state_t::no_preprocessor;
 			[[fallthrough]];
 		}
 		case preprocessor_state_t::no_preprocessor: {
-			return next_code_token_basic(keywords, false);
+			return next_code_token_basic(false);
 		}
 		case preprocessor_state_t::preprocessor_after_hash: {
 			if (text::fragment identifier = m_parser.parse_identifier(); !identifier.empty()) {
 				m_preprocessor_state = preprocessor_directive_to_state(identifier.str);
-				return code_token{syntax_token::preprocessor_directive, identifier};
+				return code_token(identifier, syntax_element_type::preprocessor_directive);
 			}
 
 			return make_error(error_reason::syntax_error);
@@ -264,10 +243,7 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_cont
 		case preprocessor_state_t::preprocessor_after_define: {
 			if (text::fragment identifier = m_parser.parse_identifier(); !identifier.empty()) {
 				m_preprocessor_state = preprocessor_state_t::preprocessor_after_define_identifier;
-				if (matches_semantic_tokens(identifier, m_current_semantic_tokens))
-					return make_code_token_from_semantic_tokens(identifier);
-				else
-					return code_token{syntax_token::preprocessor_macro, identifier};
+				return code_token(identifier, syntax_element_type::preprocessor_macro);
 			}
 
 			return make_error(error_reason::syntax_error);
@@ -275,14 +251,14 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_cont
 		case preprocessor_state_t::preprocessor_after_define_identifier: {
 			if (text::fragment paren = m_parser.parse_exactly('('); !paren.empty()) {
 				m_preprocessor_state = preprocessor_state_t::preprocessor_after_define_identifier_paren_open;
-				return code_token{syntax_token::nothing_special, paren};
+				return code_token(paren, syntax_element_type::nothing_special);
 			}
 
 			m_preprocessor_state = preprocessor_state_t::preprocessor_macro_body;
 			[[fallthrough]];
 		}
 		case preprocessor_state_t::preprocessor_macro_body: {
-			return next_code_token_basic(keywords, true);
+			return next_code_token_basic(true);
 		}
 		case preprocessor_state_t::preprocessor_after_define_identifier_paren_open: {
 			// For the purpose of simple implementation, allow identifier, "," and "..."
@@ -290,38 +266,38 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_cont
 			// Such code isn't valid but detecting invalid code isn't the goal of this program.
 			if (text::fragment paren = m_parser.parse_exactly(')'); !paren.empty()) {
 				m_preprocessor_state = preprocessor_state_t::preprocessor_macro_body;
-				return code_token{syntax_token::nothing_special, paren};
+				return code_token(paren, syntax_element_type::nothing_special);
 			}
 
 			if (text::fragment identifier = m_parser.parse_identifier(); !identifier.empty()) {
 				m_preprocessor_macro_params.push_back(identifier.str);
-				return code_token{syntax_token::preprocessor_macro_param, identifier};
+				return code_token(identifier, syntax_element_type::preprocessor_macro_param);
 			}
 
 			if (text::fragment comma = m_parser.parse_exactly(','); !comma.empty()) {
-				return code_token{syntax_token::nothing_special, comma};
+				return code_token(comma, syntax_element_type::nothing_special);
 			}
 
 			if (text::fragment ellipsis = m_parser.parse_exactly("..."); !ellipsis.empty()) {
-				return code_token{syntax_token::nothing_special, ellipsis};
+				return code_token(ellipsis, syntax_element_type::nothing_special);
 			}
 
 			return make_error(error_reason::syntax_error);
 		}
 		case preprocessor_state_t::preprocessor_after_ifdef_ifndef_elifdef_elifndef_undef: {
 			if (text::fragment identifier = m_parser.parse_identifier(); !identifier.empty()) {
-				return code_token{syntax_token::preprocessor_macro, identifier};
+				return code_token(identifier, syntax_element_type::preprocessor_macro);
 			}
 
 			return make_error(error_reason::syntax_error);
 		}
 		case preprocessor_state_t::preprocessor_after_include: {
 			if (text::fragment quoted = m_parser.parse_quoted('<', '>'); !quoted.empty()) {
-				return code_token{syntax_token::preprocessor_header_file, quoted};
+				return code_token(quoted, syntax_element_type::preprocessor_header_file);
 			}
 
 			if (text::fragment quoted = m_parser.parse_quoted('"'); !quoted.empty()) {
-				return code_token{syntax_token::preprocessor_header_file, quoted};
+				return code_token(quoted, syntax_element_type::preprocessor_header_file);
 			}
 
 			return make_error(error_reason::syntax_error);
@@ -330,7 +306,7 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_cont
 			// because these can have arbitrary syntax (excluding comments) there is special parsing call and
 			// the result is always emitted as preprocessor_other (it may contain broken parens and quotes)
 			if (text::fragment text = m_parser.parse_preprocessor_diagnostic_message(); !text.empty()) {
-				return code_token{syntax_token::preprocessor_other, text};
+				return code_token(text, syntax_element_type::preprocessor_other);
 			}
 
 			return make_error(error_reason::internal_error_unhandled_preprocessor_diagnostic_message);
@@ -338,20 +314,20 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_cont
 		case preprocessor_state_t::preprocessor_after_line:
 		case preprocessor_state_t::preprocessor_after_other: {
 			if (text::fragment quoted = m_parser.parse_quoted('"'); !quoted.empty()) {
-				return code_token{syntax_token::literal_string, quoted};
+				return code_token(quoted, syntax_element_type::literal_string);
 			}
 
 			// preprocessor directives (not macros) support only integer literals
 			if (text::fragment digits = m_parser.parse_digits(); !digits.empty()) {
-				return code_token{syntax_token::literal_number, digits};
+				return code_token(digits, syntax_element_type::literal_number);
 			}
 
 			if (text::fragment identifier = m_parser.parse_identifier(); !identifier.empty()) {
-				return code_token{syntax_token::preprocessor_other, identifier};
+				return code_token(identifier, syntax_element_type::preprocessor_other);
 			}
 
 			if (text::fragment symbols = m_parser.parse_symbols(); !symbols.empty()) {
-				return code_token{syntax_token::preprocessor_other, symbols};
+				return code_token(symbols, syntax_element_type::preprocessor_other);
 			}
 
 			return make_error(error_reason::syntax_error);
@@ -365,48 +341,48 @@ std::variant<code_token, highlighter_error> code_tokenizer::next_code_token_cont
 {
 	if (is_doxygen) {
 		if (text::fragment comment_tag = m_parser.parse_comment_tag_doxygen(); !comment_tag.empty())
-			return code_token{syntax_token::comment_tag_doxygen, comment_tag};
+			return code_token(comment_tag, syntax_element_type::comment_tag_doxygen);
 	}
 
 	if (text::fragment comment_tag = m_parser.parse_comment_tag_todo(); !comment_tag.empty())
-		return code_token{syntax_token::comment_tag_todo, comment_tag};
+		return code_token(comment_tag, syntax_element_type::comment_tag_todo);
 
 	if (is_multiline) {
 		if (is_doxygen) {
 			if (text::fragment comment_body = m_parser.parse_comment_multi_doxygen_body(); !comment_body.empty())
-				return code_token{syntax_token::nothing_special, comment_body};
+				return code_token(comment_body, syntax_element_type::nothing_special);
 		}
 		else {
 			if (text::fragment comment_body = m_parser.parse_comment_multi_body(); !comment_body.empty())
-				return code_token{syntax_token::nothing_special, comment_body};
+				return code_token(comment_body, syntax_element_type::nothing_special);
 		}
 
 		if (text::fragment comment_end = m_parser.parse_exactly("*/"); !comment_end.empty()) {
 			m_context_state = context_state_t::none;
-			return code_token{syntax_token::comment_end, comment_end};
+			return code_token(comment_end, syntax_element_type::comment_end);
 		}
 	}
 	else {
 		if (is_doxygen) {
 			if (text::fragment comment_body = m_parser.parse_comment_single_doxygen_body(); !comment_body.empty())
-				return code_token{syntax_token::nothing_special, comment_body};
+				return code_token(comment_body, syntax_element_type::nothing_special);
 		}
 		else {
 			if (text::fragment comment_body = m_parser.parse_comment_single_body(); !comment_body.empty())
-				return code_token{syntax_token::nothing_special, comment_body};
+				return code_token(comment_body, syntax_element_type::nothing_special);
 		}
 
 		if (text::fragment newlines = m_parser.parse_newlines(); !newlines.empty()) {
 			m_context_state = context_state_t::none;
 			on_parsed_newline();
-			return code_token{syntax_token::comment_end, newlines};
+			return code_token(newlines, syntax_element_type::comment_end);
 		}
 
 		// end of file should also close comments
 		// this is needed to emit comment_end before context-none code emits end_of_input
 		if (has_reached_end()) {
 			m_context_state = context_state_t::none;
-			return code_token{syntax_token::comment_end, empty_match()};
+			return code_token(empty_match(), syntax_element_type::comment_end);
 		}
 	}
 
@@ -417,15 +393,15 @@ std::variant<code_token, highlighter_error>
 code_tokenizer::next_code_token_context_quoted_literal(char delimeter, bool allow_suffix, bool highlight_printf_formatting)
 {
 	if (text::fragment escape = m_parser.parse_escape_sequence(); !escape.empty())
-		return code_token{syntax_token::escape_sequence, escape};
+		return code_token(escape, syntax_element_type::escape_sequence);
 
 	if (highlight_printf_formatting) {
 		if (text::fragment formatting = m_parser.parse_format_sequence_printf(); !formatting.empty())
-			return code_token{syntax_token::format_sequence, formatting};
+			return code_token(formatting, syntax_element_type::format_sequence);
 	}
 
 	if (text::fragment frag = m_parser.parse_text_literal_body(delimeter, highlight_printf_formatting); !frag.empty())
-		return code_token{syntax_token::nothing_special, frag};
+		return code_token(frag, syntax_element_type::nothing_special);
 
 	if (text::fragment delim = m_parser.parse_exactly(delimeter); !delim.empty()) {
 		if (allow_suffix)
@@ -433,108 +409,75 @@ code_tokenizer::next_code_token_context_quoted_literal(char delimeter, bool allo
 		else
 			m_context_state = context_state_t::none;
 
-		return code_token{syntax_token::literal_text_end, delim};
+		return code_token(delim, syntax_element_type::literal_text_end);
 	}
 
 	return make_error(error_reason::syntax_error);
 }
 
 std::variant<code_token, highlighter_error>
-code_tokenizer::next_code_token_basic(utility::range<const std::string*> keywords, bool inside_macro_body)
+code_tokenizer::next_code_token_basic(bool inside_macro_body)
 {
 	if (text::fragment prefix = m_parser.parse_raw_string_literal_prefix(); !prefix.empty()) {
 		m_context_state = context_state_t::literal_string_raw_quote_open;
-		return code_token{syntax_token::literal_prefix, prefix};
+		return code_token(prefix, syntax_element_type::literal_prefix);
 	}
 
 	if (text::fragment prefix = m_parser.parse_text_literal_prefix('\''); !prefix.empty()) {
-		return code_token{syntax_token::literal_prefix, prefix};
+		return code_token(prefix, syntax_element_type::literal_prefix);
 	}
 
 	if (text::fragment prefix = m_parser.parse_text_literal_prefix('"'); !prefix.empty()) {
-		return code_token{syntax_token::literal_prefix, prefix};
+		return code_token(prefix, syntax_element_type::literal_prefix);
 	}
 
 	if (text::fragment quote = m_parser.parse_exactly('\''); !quote.empty()) {
 		m_context_state = context_state_t::literal_character;
-		return code_token{syntax_token::literal_char_begin, quote};
+		return code_token(quote, syntax_element_type::literal_char_begin);
 	}
 
 	if (text::fragment quote = m_parser.parse_exactly('"'); !quote.empty()) {
 		m_context_state = context_state_t::literal_string;
-		return code_token{syntax_token::literal_string_begin, quote};
+		return code_token(quote, syntax_element_type::literal_string_begin);
 	}
 
 	if (text::fragment literal = m_parser.parse_numeric_literal(); !literal.empty()) {
 		m_context_state = context_state_t::literal_end_optional_suffix;
-		return code_token{syntax_token::literal_number, literal};
+		return code_token(literal, syntax_element_type::literal_number);
 	}
 
 	if (text::fragment identifier = m_parser.parse_identifier(); !identifier.empty()) {
-		if (matches_semantic_tokens(identifier, m_current_semantic_tokens)) {
-			// A unique case: clangd doesn't report keywords except auto.
-			// If auto can be deduced, it is reported as a semantic token.
-			// This is simply unneeded: advance semantic tokens and report a keyword.
-			if (compare_spliced_with_raw(identifier.str, "auto")) {
-				if (!advance_semantic_tokens())
-					return make_error(error_reason::invalid_semantic_token_data);
-				return code_token{syntax_token::keyword, identifier};
-			}
+		if (is_keyword(identifier.str, m_keywords))
+			return code_token(identifier, syntax_element_type::keyword);
 
-			// Now, whether the identifier is a keyword is irrelevant. If it is,
-			// it's probably a pseudo-keyword like "override" (which technically
-			// is a special identifier with context-dependent meaning).
-			// In such case assume the identifier does not function as a keyword
-			// and report it according to the semantic token information.
-			return make_code_token_from_semantic_tokens(identifier);
+		if (inside_macro_body) {
+			if (is_in_macro_params(identifier.str))
+				return code_token(identifier, syntax_element_type::preprocessor_macro_param);
+			else
+				return code_token(identifier, syntax_element_type::preprocessor_macro_body);
 		}
-		else {
-			if (is_keyword(identifier.str, keywords))
-				return code_token{syntax_token::keyword, identifier};
 
-			if (inside_macro_body) {
-				if (is_in_macro_params(identifier.str))
-					return code_token{syntax_token::preprocessor_macro_param, identifier};
-				else
-					return code_token{syntax_token::preprocessor_macro_body, identifier};
-			}
-
-			// no semantic info, not a keyword and not a macro: unknown purpose
-			// clangd doesn't report some entities - e.g. goto labels
-			return code_token{syntax_token::identifier_unknown, identifier};
-		}
+		// not a keyword and not a macro (perhaps attribute or label); report as generic identifier
+		return code_token(identifier, syntax_element_type::identifier);
 	}
 
 	if (text::fragment hash = m_parser.parse_exactly('#'); !hash.empty()) {
 		if (inside_macro_body)
-			return code_token{syntax_token::preprocessor_hash, hash};
+			return code_token(hash, syntax_element_type::preprocessor_hash);
 		else
 			return make_error(error_reason::syntax_error);
 	}
 
-	if (text::fragment symbols = m_parser.parse_symbols(); !symbols.empty()) {
+	// Parse only 1 symbol because when multiple symbols are next to each other,
+	// each can be a token of a different type: bracket, (non-)overloaded operator
+	if (text::fragment symbol = m_parser.parse_symbol(); !symbol.empty()) {
 		if (inside_macro_body)
-			return code_token{syntax_token::preprocessor_macro_body, symbols};
+			return code_token(symbol, syntax_element_type::preprocessor_macro_body);
 		else
-			return code_token{syntax_token::nothing_special, symbols};
+			return code_token(symbol, syntax_element_type::symbol);
 	}
 
 	return make_error(error_reason::syntax_error);
-}
-
-std::variant<code_token, highlighter_error>
-code_tokenizer::make_code_token_from_semantic_tokens(text::fragment identifier)
-{
-	assert(!m_current_semantic_tokens.empty());
-	auto token = identifier_token{
-		m_current_semantic_tokens.first->info,
-		m_current_semantic_tokens.first->color_variance
-	};
-
-	if (!advance_semantic_tokens())
-		return make_error(error_reason::invalid_semantic_token_data);
-
-	return code_token{token, identifier};
 }
 
 }

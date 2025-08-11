@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string_view>
+#include <ostream>
 
 namespace ach::text {
 
@@ -107,6 +108,64 @@ constexpr std::size_t count_lines(std::string_view str) noexcept
 		--result;
 
 	return result;
+}
+
+struct sanitized_whitespace
+{
+	sanitized_whitespace(std::string_view sv, int min_width = 0)
+	: sv(sv)
+	, min_width(min_width)
+	{}
+
+	std::string_view sv;
+	int min_width;
+};
+
+std::string_view to_escaped(char&& c) noexcept = delete;
+inline std::string_view to_escaped(const char& c) noexcept
+{
+	switch (c)
+	{
+		case '\0':
+			return "\\0";
+		case '\a':
+			return "\\a";
+		case '\b':
+			return "\\b";
+		case '\t':
+			return "\\t";
+		case '\n':
+			return "\\n";
+		case '\v':
+			return "\\v";
+		case '\f':
+			return "\\f";
+		case '\r':
+			return "\\r";
+		case '\\':
+			return "\\\\";
+		default:
+			return {&c, 1};
+	}
+}
+
+inline std::ostream& operator<<(std::ostream& os, sanitized_whitespace sw)
+{
+	os << '\"';
+
+	int total = 0;
+	for (char c : sw.sv) {
+		std::string_view escaped = to_escaped(c);
+		os << escaped;
+		total += escaped.size();
+	}
+
+	os << '\"';
+
+	for (int i = total; i < sw.min_width; ++i)
+		os << ' ';
+
+	return os;
 }
 
 }

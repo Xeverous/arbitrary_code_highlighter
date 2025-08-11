@@ -2,7 +2,6 @@
 
 #include <ach/clangd/state.hpp>
 #include <ach/clangd/code_token.hpp>
-#include <ach/clangd/semantic_token.hpp>
 #include <ach/clangd/highlighter_error.hpp>
 #include <ach/clangd/spliced_text_parser.hpp>
 #include <ach/utility/range.hpp>
@@ -16,22 +15,11 @@ namespace ach::clangd {
 
 class code_tokenizer
 {
-private:
-	code_tokenizer(std::string_view code, utility::range<const semantic_token*> semantic_tokens)
-	: m_parser(code)
-	, m_all_semantic_tokens{semantic_tokens}
-	, m_current_semantic_tokens{semantic_tokens.first, semantic_tokens.first}
-	{}
-
 public:
-	static std::optional<code_tokenizer> create(std::string_view code, utility::range<const semantic_token*> semantic_tokens)
-	{
-		code_tokenizer ct(code, semantic_tokens);
-		if (ct.advance_semantic_tokens())
-			return ct;
-		else
-			return std::nullopt;
-	}
+	code_tokenizer(std::string_view code, utility::range<const std::string*> keywords)
+	: m_keywords{keywords}
+	, m_parser(code)
+	{}
 
 	// note: this doesn't mean the parser is finished
 	// if it reaches end it may still emit some tokens (e.g. comment_end) before end_of_input
@@ -45,11 +33,6 @@ public:
 		return m_parser.current_position();
 	}
 
-	auto current_semantic_tokens() const noexcept
-	{
-		return m_current_semantic_tokens;
-	}
-
 	context_state_t current_context_state() const noexcept
 	{
 		return m_context_state;
@@ -61,7 +44,12 @@ public:
 	}
 
 	[[nodiscard]] std::variant<code_token, highlighter_error>
-	next_code_token(utility::range<const std::string*> keywords, bool highlight_printf_formatting);
+	next_code_token(bool highlight_printf_formatting);
+
+	// Clear vector and fill it with all remaining tokens.
+	// If an error occurs, partial fill may happen.
+	[[nodiscard]] std::optional<highlighter_error>
+	fill_with_tokens(bool highlight_printf_formatting, std::vector<code_token>& tokens);
 
 private:
 	text::fragment empty_match() const noexcept
@@ -71,18 +59,13 @@ private:
 
 	highlighter_error make_error(error_reason reason) const
 	{
-		return {reason, current_position(), m_current_semantic_tokens, m_context_state, m_preprocessor_state};
+		return highlighter_error::from_parser(reason, current_position(), m_context_state, m_preprocessor_state);
 	}
-
-	std::string_view semantic_token_str(semantic_token sem_token) const;
-
-	// move to the next set of tokens that describe one (potentially spliced) entity
-	[[nodiscard]] bool advance_semantic_tokens();
 
 	void on_parsed_newline();
 
 	[[nodiscard]] std::variant<code_token, highlighter_error>
-	next_code_token_context_none(utility::range<const std::string*> keywords);
+	next_code_token_context_none();
 
 	[[nodiscard]] std::variant<code_token, highlighter_error>
 	next_code_token_context_comment(bool is_multiline, bool is_documentation);
@@ -91,10 +74,7 @@ private:
 	next_code_token_context_quoted_literal(char delimeter, bool allow_suffix, bool highlight_printf_formatting);
 
 	[[nodiscard]] std::variant<code_token, highlighter_error>
-	next_code_token_basic(utility::range<const std::string*> keywords, bool inside_macro_body);
-
-	[[nodiscard]] std::variant<code_token, highlighter_error>
-	make_code_token_from_semantic_tokens(text::fragment identifier);
+	next_code_token_basic(bool inside_macro_body);
 
 	bool is_in_macro_params(std::string_view param) const
 	{
@@ -105,14 +85,13 @@ private:
 		return false;
 	}
 
+	utility::range<const std::string*> m_keywords;
 	spliced_text_parser m_parser;
 
-	utility::range<const semantic_token*> m_all_semantic_tokens;
-	utility::range<const semantic_token*> m_current_semantic_tokens;
+	// simple state machine to improve decision making on the parser
 
 	preprocessor_state_t m_preprocessor_state = preprocessor_state_t::line_begin;
 	context_state_t m_context_state = context_state_t::none;
-	std::optional<text::position> m_disabled_code_end_pos;
 	// non-empty when parsing preprocessor object-like macro
 	// this will allow to highlight macro parameters inside macro body
 	// note: vector content strings may be spliced
