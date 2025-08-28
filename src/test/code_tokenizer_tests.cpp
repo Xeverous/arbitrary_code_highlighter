@@ -482,6 +482,61 @@ BOOST_AUTO_TEST_SUITE(code_tokenizer_suite)
 		});
 	}
 
+	BOOST_AUTO_TEST_CASE(var_definition_and_raw_string_prefix_and_suffix)
+	{
+		const auto input =
+			"#include <string_view>\n"
+			"\n"
+			"using namespace std::literals;\n"
+			"\n"
+			"[[maybe_unused]] const auto sv = LR\"({\"key\": \"value\"})\"sv;\n";
+
+		test_code_tokenizer(input, {
+			test_code_token{syntax_element_type::preprocessor_hash, std::string_view("#")},
+			test_code_token{syntax_element_type::preprocessor_directive, std::string_view("include")},
+			test_code_token{syntax_element_type::whitespace, std::string_view(" ")},
+			test_code_token{syntax_element_type::preprocessor_header_file, std::string_view("<string_view>")},
+			test_code_token{syntax_element_type::whitespace, std::string_view("\n\n")},
+
+			test_code_token{syntax_element_type::keyword, std::string_view("using")},
+			test_code_token{syntax_element_type::whitespace, std::string_view(" ")},
+			test_code_token{syntax_element_type::keyword, std::string_view("namespace")},
+			test_code_token{syntax_element_type::whitespace, std::string_view(" ")},
+			test_code_token{syntax_element_type::identifier, std::string_view("std")},
+			test_code_token{syntax_element_type::symbol, std::string_view(":")},
+			test_code_token{syntax_element_type::symbol, std::string_view(":")},
+			test_code_token{syntax_element_type::identifier, std::string_view("literals")},
+			test_code_token{syntax_element_type::symbol, std::string_view(";")},
+			test_code_token{syntax_element_type::whitespace, std::string_view("\n\n")},
+
+			test_code_token{syntax_element_type::symbol, std::string_view("[")},
+			test_code_token{syntax_element_type::symbol, std::string_view("[")},
+			test_code_token{syntax_element_type::identifier, std::string_view("maybe_unused")},
+			test_code_token{syntax_element_type::symbol, std::string_view("]")},
+			test_code_token{syntax_element_type::symbol, std::string_view("]")},
+			test_code_token{syntax_element_type::whitespace, std::string_view(" ")},
+			test_code_token{syntax_element_type::keyword, std::string_view("const")},
+			test_code_token{syntax_element_type::whitespace, std::string_view(" ")},
+			test_code_token{syntax_element_type::keyword, std::string_view("auto")},
+			test_code_token{syntax_element_type::whitespace, std::string_view(" ")},
+			test_code_token{syntax_element_type::identifier, std::string_view("sv")},
+			test_code_token{syntax_element_type::whitespace, std::string_view(" ")},
+			test_code_token{syntax_element_type::symbol, std::string_view("=")},
+			test_code_token{syntax_element_type::whitespace, std::string_view(" ")},
+			test_code_token{syntax_element_type::literal_prefix, std::string_view("LR")},
+			test_code_token{syntax_element_type::literal_string_raw_quote, std::string_view("\"")},
+			test_code_token{syntax_element_type::literal_string_raw_paren, std::string_view("(")},
+			test_code_token{syntax_element_type::literal_string, std::string_view("{\"key\": \"value\"}")},
+			test_code_token{syntax_element_type::literal_string_raw_paren, std::string_view(")")},
+			test_code_token{syntax_element_type::literal_string_raw_quote, std::string_view("\"")},
+			test_code_token{syntax_element_type::literal_suffix, std::string_view("sv")},
+			test_code_token{syntax_element_type::symbol, std::string_view(";")},
+			test_code_token{syntax_element_type::whitespace, std::string_view("\n")},
+
+			test_code_token{syntax_element_type::end_of_input, std::string_view()}
+		});
+	}
+
 	BOOST_AUTO_TEST_CASE(escape_and_format_sequences)
 	{
 		test_code_tokenizer(R"("abc%s%% \\%+.?";)", {

@@ -14,6 +14,6 @@ namespace ach::utility::version {
 
 constexpr int major = 3;
 constexpr int minor = 0;
-constexpr int patch = 0;
+constexpr int patch = 1;
 
 }

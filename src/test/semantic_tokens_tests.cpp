@@ -237,6 +237,74 @@ BOOST_AUTO_TEST_CASE(semantic_tokens)
 	test_semantic_tokens(input, tokens, expected_tokens);
 }
 
+BOOST_AUTO_TEST_CASE(semantic_tokens_complex_string_literal)
+{
+	const auto input =
+		"#include <string_view>\n"
+		"\n"
+		"using namespace std::literals;\n"
+		"\n"
+		"[[maybe_unused]] const auto sv = LR\"({\"key\": \"value\"})\"sv;\n";
+
+	semantic_token_info sti_ns{semantic_token_type::namespace_, semantic_token_modifiers{}.from_std_lib().scope_global()};
+	semantic_token_info sti_cl{semantic_token_type::class_, semantic_token_modifiers{}.deduced().from_std_lib().scope_global()};
+	semantic_token_info sti_var{semantic_token_type::variable, semantic_token_modifiers{}.declaration().definition().readonly().scope_file()};
+
+	std::vector<semantic_token> tokens = {
+		semantic_token{{2, 16}, 3u, sti_ns, {}},
+		semantic_token{{2, 21}, 8u, sti_ns, {}},
+		semantic_token{{4, 23}, 4u, sti_cl, {}},
+		semantic_token{{4, 28}, 2u, sti_var, {}},
+	};
+
+	std::vector<expected_token> expected_tokens = {
+		expected_token{syntax_element_type::preprocessor_hash, {}, std::string_view("#")},
+		expected_token{syntax_element_type::preprocessor_directive, {}, std::string_view("include")},
+		expected_token{syntax_element_type::whitespace, {}, std::string_view(" ")},
+		expected_token{syntax_element_type::preprocessor_header_file, {}, std::string_view("<string_view>")},
+		expected_token{syntax_element_type::whitespace, {}, std::string_view("\n\n")},
+
+		expected_token{syntax_element_type::keyword, {}, std::string_view("using")},
+		expected_token{syntax_element_type::whitespace, {}, std::string_view(" ")},
+		expected_token{syntax_element_type::keyword, {}, std::string_view("namespace")},
+		expected_token{syntax_element_type::whitespace, {}, std::string_view(" ")},
+		expected_token{syntax_element_type::identifier, sti_ns, std::string_view("std")},
+		expected_token{syntax_element_type::symbol, {}, std::string_view(":")},
+		expected_token{syntax_element_type::symbol, {}, std::string_view(":")},
+		expected_token{syntax_element_type::identifier, sti_ns, std::string_view("literals")},
+		expected_token{syntax_element_type::symbol, {}, std::string_view(";")},
+		expected_token{syntax_element_type::whitespace, {}, std::string_view("\n\n")},
+
+		expected_token{syntax_element_type::symbol, {}, std::string_view("[")},
+		expected_token{syntax_element_type::symbol, {}, std::string_view("[")},
+		expected_token{syntax_element_type::identifier, {}, std::string_view("maybe_unused")},
+		expected_token{syntax_element_type::symbol, {}, std::string_view("]")},
+		expected_token{syntax_element_type::symbol, {}, std::string_view("]")},
+		expected_token{syntax_element_type::whitespace, {}, std::string_view(" ")},
+		expected_token{syntax_element_type::keyword, {}, std::string_view("const")},
+		expected_token{syntax_element_type::whitespace, {}, std::string_view(" ")},
+		expected_token{syntax_element_type::keyword, sti_cl, std::string_view("auto")},
+		expected_token{syntax_element_type::whitespace, {}, std::string_view(" ")},
+		expected_token{syntax_element_type::identifier, sti_var, std::string_view("sv")},
+		expected_token{syntax_element_type::whitespace, {}, std::string_view(" ")},
+		expected_token{syntax_element_type::symbol, {}, std::string_view("=")},
+		expected_token{syntax_element_type::whitespace, {}, std::string_view(" ")},
+		expected_token{syntax_element_type::literal_prefix, {}, std::string_view("LR")},
+		expected_token{syntax_element_type::literal_string_raw_quote, {}, std::string_view("\"")},
+		expected_token{syntax_element_type::literal_string_raw_paren, {}, std::string_view("(")},
+		expected_token{syntax_element_type::literal_string, {}, std::string_view("{\"key\": \"value\"}")},
+		expected_token{syntax_element_type::literal_string_raw_paren, {}, std::string_view(")")},
+		expected_token{syntax_element_type::literal_string_raw_quote, {}, std::string_view("\"")},
+		expected_token{syntax_element_type::literal_suffix, {}, std::string_view("sv")},
+		expected_token{syntax_element_type::symbol, {}, std::string_view(";")},
+		expected_token{syntax_element_type::whitespace, {}, std::string_view("\n")},
+
+		expected_token{syntax_element_type::end_of_input, {}, std::string_view()}
+	};
+
+	test_semantic_tokens(input, tokens, expected_tokens);
+}
+
 BOOST_AUTO_TEST_CASE(semantic_tokens_preprocessor_disabled_code_and_macro_token)
 {
 	std::string_view input =

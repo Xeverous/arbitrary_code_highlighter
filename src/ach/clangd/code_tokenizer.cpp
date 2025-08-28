@@ -133,14 +133,20 @@ code_tokenizer::next_code_token(bool highlight_printf_formatting)
 			m_context_state = context_state_t::literal_string_raw_quote_close;
 			const std::string_view delimeter = m_raw_string_literal_delimeter.str;
 			m_raw_string_literal_delimeter = {};
-			if (text::fragment delim = m_parser.parse_raw_string_literal_delimeter_close(delimeter); !delim.empty()) {
-				return code_token(delim, syntax_element_type::literal_string_raw_delimeter);
+			if (!delimeter.empty()) {
+				text::fragment delim = m_parser.parse_raw_string_literal_delimeter_close(delimeter);
+
+				if (delim.empty())
+					return make_error(error_reason::syntax_error);
+				else
+					return code_token(delim, syntax_element_type::literal_string_raw_delimeter);
 			}
+			// no delimeter in raw string - skip this step
 			[[fallthrough]];
 		}
 		case context_state_t::literal_string_raw_quote_close:
 			if (text::fragment quote = m_parser.parse_exactly('"'); !quote.empty()) {
-				m_context_state = context_state_t::none;
+				m_context_state = context_state_t::literal_end_optional_suffix;
 				return code_token(quote, syntax_element_type::literal_string_raw_quote);
 			}
 			return make_error(error_reason::internal_error_raw_string_literal_quote_close);

@@ -142,6 +142,8 @@ inline std::string_view to_escaped(const char& c) noexcept
 			return "\\f";
 		case '\r':
 			return "\\r";
+		case '"':
+			return "\\\"";
 		case '\\':
 			return "\\\\";
 		default:

@@ -636,8 +636,8 @@ text::fragment spliced_text_parser::return_parse_result(bool is_success, spliced
 {
 	if (is_success) {
 		assert(updated_iterator != m_iterator &&
-			"every successful parse should move the iterator"
-			"- otherwise the tokenizer will get stuck on an infinite loop");
+			"every successful parse should move the iterator (do not use empty-match parsers)"
+			"- otherwise the tokenizer can get stuck on an infinite loop");
 		text::fragment result{str_from_range(m_iterator, updated_iterator), {m_iterator.position(), updated_iterator.position()}};
 		m_iterator = updated_iterator;
 		return result;
